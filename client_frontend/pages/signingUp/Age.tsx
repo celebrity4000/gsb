@@ -5,25 +5,72 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import React, {useState} from 'react';
-import {useNavigation} from '@react-navigation/native';
+import React, {useEffect, useState} from 'react';
+import {useFocusEffect, useNavigation} from '@react-navigation/native';
 import Test from '../../components/ScrollNumberInput';
 import ScrollNumberInput from '../../components/ScrollNumberInput';
 import Icons from '../../Icons';
+import {useSelector} from 'react-redux';
+import {RootState} from '../../redux/store';
+import {retrieveData} from '../../utils/Storage';
+import axios from 'axios';
+import {BASE_URL} from '../../global/server';
 
 const Weight = () => {
   const navigation = useNavigation();
 
   const [age, setAge] = useState<string>('18');
   const [unit, setUnit] = useState<'kg' | 'lbs'>('kg');
+  const [token, setToken] = useState<string>(''); // State to store token
+  const userId = useSelector((state: RootState) => state.auth.user._id); // Fetch user ID from Redux store, corrected property access
+  const storedAge = useSelector((state: RootState) => state.auth.user.age); // Fetch user name from Redux store
+
+  useFocusEffect(
+    React.useCallback(() => {
+      if (storedAge) {
+        navigation.navigate('Weight'); // If name is already in Redux store, navigate to next screen
+      }
+    }, [storedAge, navigation]),
+  );
+
+  useEffect(() => {
+    const getToken = async () => {
+      const storedToken = await retrieveData('token'); // Retrieve token from AsyncStorage
+      setToken(storedToken);
+    };
+    getToken();
+  }, []);
 
   const handleToggleUnit = () => {
     setUnit(unit === 'kg' ? 'lbs' : 'kg');
   };
 
-  const handleHeightChange = (text: string) => {
+  const handleAgeChange = (text: string) => {
     setAge(text);
   };
+
+  const handleNextStep = async () => {
+    const url = `${BASE_URL}/api/user/${userId}`;
+
+    console.log(url);
+
+    try {
+      const response = await axios.put(
+        url,
+        {age},
+        {headers: {token: `Bearer ${token}`}},
+      );
+      console.log('Response from update:', response); // Add this line
+      if (response) {
+        navigation.navigate('Weight');
+      } else {
+        console.error('Failed to update user data:', response);
+      }
+    } catch (error) {
+      console.error('Error updating user:', error);
+    }
+  };
+
   return (
     <View style={styles.container}>
       <View style={{marginBottom: 10}}>
@@ -44,7 +91,7 @@ const Weight = () => {
           <TextInput
             style={styles.input}
             keyboardType="numeric"
-            onChangeText={handleHeightChange}
+            onChangeText={handleAgeChange}
             value={age}
             placeholderTextColor={'black'}
             // placeholder={18}
@@ -54,11 +101,7 @@ const Weight = () => {
         </View>
       </View>
 
-      <TouchableOpacity
-        style={styles.button}
-        onPress={() => {
-          navigation.navigate('Weight');
-        }}>
+      <TouchableOpacity style={styles.button} onPress={handleNextStep}>
         <Text style={styles.buttonText}>Next Step</Text>
       </TouchableOpacity>
     </View>

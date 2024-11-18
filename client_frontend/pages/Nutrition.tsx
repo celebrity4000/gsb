@@ -5,154 +5,108 @@ import {
   Text,
   TouchableOpacity,
   View,
+  ActivityIndicator,
+  Linking,
 } from 'react-native';
-import React from 'react';
+import React, {useEffect, useState} from 'react';
 import Icons from '../Icons';
 import gsbLogo from '../assets/gsbtransparent.png';
 import {useNavigation} from '@react-navigation/native';
-import nutrition from '../assets/nutrition.png';
-
-const MeditationData = [
-  {
-    title: 'How to get started',
-    desc: 'Jump right in — get an overview of the basics and get started on building.',
-    image: nutrition,
-  },
-  {
-    title: 'How to get started',
-    desc: 'Jump right in — get an overview of the basics and get started on building.',
-    image: nutrition,
-  },
-  {
-    title: 'How to get started',
-    desc: 'Jump right in — get an overview of the basics and get started on building.',
-    image: nutrition,
-  },
-  {
-    title: 'How to get started',
-    desc: 'Jump right in — get an overview of the basics and get started on building.',
-    image: nutrition,
-  },
-  {
-    title: 'How to get started',
-    desc: 'Jump right in — get an overview of the basics and get started on building.',
-    image: nutrition,
-  },
-  {
-    title: 'How to get started',
-    desc: 'Jump right in — get an overview of the basics and get started on building.',
-    image: nutrition,
-  },
-  {
-    title: 'How to get started',
-    desc: 'Jump right in — get an overview of the basics and get started on building.',
-    image: nutrition,
-  },
-];
+import {useSelector} from 'react-redux';
+import {retrieveData} from '../utils/Storage';
+import {getData} from '../global/server';
 
 const Nutrition = () => {
   const navigation = useNavigation();
+  const [dietData, setDietData] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [token, setToken] = useState('');
+  const fetchedUserId = useSelector(state => state.auth.user?._id);
+  const [userId, setUserId] = useState(fetchedUserId);
+
+  useEffect(() => {
+    const getToken = async () => {
+      const storedToken = await retrieveData('token');
+      setToken(storedToken);
+    };
+
+    const getUserId = async () => {
+      const storedUserId = await retrieveData('userId');
+      setUserId(storedUserId);
+    };
+    getToken();
+    getUserId();
+  }, []);
+
+  useEffect(() => {
+    const fetchDietPdfs = async () => {
+      try {
+        const response = await getData('/api/dietPdf', token);
+        setDietData(response);
+        console.log(response);
+        setLoading(false);
+      } catch (error) {
+        console.error('Error fetching diet PDFs', error);
+        setLoading(false);
+      }
+    };
+
+    if (token) {
+      fetchDietPdfs();
+    }
+  }, [token]);
+
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#0000ff" />
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
-      <View
-        style={{
-          flexDirection: 'row',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          padding: 10,
-        }}>
-        <TouchableOpacity
-          onPress={() => {
-            navigation.goBack();
-          }}>
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => navigation.goBack()}>
           <Icons.AntDesign name="arrowleft" size={25} color={'black'} />
         </TouchableOpacity>
-        <Text style={{fontSize: 20, color: 'black', fontWeight: '800'}}>
-          Diet
-        </Text>
+        <Text style={styles.headerText}>Diet</Text>
         <Image source={gsbLogo} />
       </View>
 
       <ScrollView
         showsVerticalScrollIndicator={false}
-        style={{paddingHorizontal: 20, marginBottom: 20}}>
-        <View
-          style={{
-            display: 'flex',
-            flexDirection: 'row',
-            gap: 10,
-            flexWrap: 'wrap',
-            width: '100%',
-            justifyContent: 'space-between',
-            // paddingLeft: 10,
-            marginTop: 20,
-            // backgroundColor: 'red',
-            marginBottom: 20,
-          }}>
-          {MeditationData.map((item, index) => (
-            <View
-              key={index}
-              style={{
-                width: '100%',
-                flexDirection: 'row',
-                backgroundColor: '#ffe6c6',
-                borderRadius: 12,
-                // padding: 10,
-              }}>
-              <View
-                style={{
-                  // alignItems: 'center',
-                  //   backgroundColor: 'white',
-                  marginTop: 15,
-                  paddingHorizontal: 10,
-                  flexDirection: 'row',
-                  width: '20%',
-                  justifyContent: 'center',
-                }}>
-                {/* <Image
-                  source={item.image}
-                  style={{height: '100%', width: '100%', borderRadius: 18}}
-                /> */}
+        style={styles.scrollView}>
+        <View style={styles.contentContainer}>
+          {dietData.map((item, index) => (
+            <View key={index} style={styles.card}>
+              <View style={styles.iconContainer}>
                 <Icons.FontAwesome
                   name="file-pdf-o"
                   color={'black'}
                   size={35}
                 />
               </View>
-              <View style={{padding: 10, width: '80%'}}>
-                <Text style={{fontSize: 18, fontWeight: '600', color: 'black'}}>
-                  {item.title}
-                </Text>
-                <Text style={{color: 'black'}}>{item.desc}</Text>
+              <View style={styles.textContainer}>
+                <Text style={styles.title}>{item.title}</Text>
+                <Text style={styles.description}>{item.description}</Text>
                 <TouchableOpacity
-                  style={{
-                    marginTop: 10,
-                    flexDirection: 'row',
-                    gap: 10,
-                    alignItems: 'center',
+                  style={styles.downloadButton}
+                  onPress={() => {
+                    // Logic to download the PDF
+                    Linking.openURL(item.url);
                   }}>
                   <Icons.AntDesign
                     name="download"
                     color={'#FFA800'}
                     size={18}
                   />
-
-                  <Text style={{color: '#FFA800', fontSize: 16}}>
-                    Download pdf
-                  </Text>
+                  <Text style={styles.downloadText}>Download pdf</Text>
                 </TouchableOpacity>
               </View>
             </View>
           ))}
         </View>
-        <TouchableOpacity
-          style={styles.button}
-          onPress={() => {
-            navigation.navigate('TabNavigator');
-          }}>
-          <Text style={styles.buttonText}>Download PDF</Text>
-        </TouchableOpacity>
       </ScrollView>
     </View>
   );
@@ -165,17 +119,67 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: 'white',
   },
-  button: {
-    backgroundColor: '#F6AF24',
-    borderRadius: 5,
-    paddingVertical: 12,
-    // marginHorizontal: 20,
-    marginBottom: 40,
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 10,
   },
-  buttonText: {
-    color: 'white',
-    fontSize: 15,
+  headerText: {
+    fontSize: 20,
+    color: 'black',
+    fontWeight: '800',
+  },
+  scrollView: {
+    paddingHorizontal: 20,
+    marginBottom: 20,
+  },
+  contentContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    marginTop: 20,
+    marginBottom: 20,
+  },
+  card: {
+    width: '100%',
+    flexDirection: 'row',
+    backgroundColor: '#ffe6c6',
+    borderRadius: 12,
+    marginBottom: 10,
+  },
+  iconContainer: {
+    marginTop: 15,
+    paddingHorizontal: 10,
+    flexDirection: 'row',
+    width: '20%',
+    justifyContent: 'center',
+  },
+  textContainer: {
+    padding: 10,
+    width: '80%',
+  },
+  title: {
+    fontSize: 18,
     fontWeight: '600',
-    textAlign: 'center',
+    color: 'black',
+  },
+  description: {
+    color: 'black',
+  },
+  downloadButton: {
+    marginTop: 10,
+    flexDirection: 'row',
+    gap: 10,
+    alignItems: 'center',
+  },
+  downloadText: {
+    color: '#FFA800',
+    fontSize: 16,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });

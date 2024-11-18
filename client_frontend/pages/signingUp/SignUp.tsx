@@ -9,24 +9,55 @@ import {
   View,
   useColorScheme,
 } from 'react-native';
-import React from 'react';
+import React, {useState} from 'react';
 import {Colors} from 'react-native/Libraries/NewAppScreen';
-import Carousel from '../components/Carousel';
-import countryFlag from '../assets/india.png';
+import Carousel from '../../components/Carousel';
+import countryFlag from '../../assets/india.png';
 
-import appleLogo from '../assets/apple.png';
-import googleLogo from '../assets/google.png';
-import fbLogo from '../assets/fb.png';
+import appleLogo from '../../assets/apple.png';
+import googleLogo from '../../assets/google.png';
+import fbLogo from '../../assets/fb.png';
 import {useNavigation} from '@react-navigation/native';
+import {useDispatch, useSelector} from 'react-redux';
+import {signupFailure, signupStart, signupSuccess} from '../../redux/authSlice';
+import axios from 'axios';
+import {postData} from '../../global/server';
+import {RootState} from '../../redux/store';
 
 const SignUp = () => {
   const isDarkMode = useColorScheme() === 'dark';
+  const [phoneNumber, setPhoneNumber] = useState('');
 
   const backgroundStyle = {
     backgroundColor: isDarkMode ? Colors.darker : Colors.lighter,
   };
 
   const navigation = useNavigation();
+
+  const dispatch = useDispatch();
+  const {isFetching, error, isAuth} = useSelector(
+    (state: RootState) => state.auth,
+  );
+
+  const handleSignUp = async () => {
+    console.log('Signing Up');
+    console.log(phoneNumber);
+    dispatch(signupStart());
+    try {
+      const res = await postData(
+        '/api/auth/phone-login',
+        {phone: `+91${phoneNumber}`},
+        null,
+        null,
+      );
+      console.log(res);
+      dispatch(signupSuccess(res?.data));
+      navigation.navigate('Verification', {phoneNumber: `+91${phoneNumber}`});
+    } catch (err) {
+      dispatch(signupFailure());
+      console.log(err);
+    }
+  };
 
   return (
     <SafeAreaView>
@@ -50,13 +81,14 @@ const SignUp = () => {
               style={styles.input}
               placeholder="Enter your phone number"
               keyboardType="phone-pad"
+              onChangeText={text => setPhoneNumber(text)}
             />
           </View>
           {/* Button */}
           <TouchableOpacity
             style={styles.button}
             onPress={() => {
-              navigation.navigate('Verification');
+              handleSignUp();
             }}>
             <Text style={styles.buttonText}>Get Started</Text>
           </TouchableOpacity>

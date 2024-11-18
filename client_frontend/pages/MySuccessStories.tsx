@@ -6,36 +6,54 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import React from 'react';
+import React, {useEffect, useState} from 'react';
 import Icons from '../Icons';
 import {useNavigation} from '@react-navigation/native';
-import success1 from '../assets/home/success1.png';
-import success2 from '../assets/home/success2.png';
+import {retrieveData} from '../utils/Storage';
+import axios from 'axios';
+import {BASE_URL} from '../global/server';
 
 const MySuccessStories = () => {
   const navigation = useNavigation();
-  const Success = [
-    {
-      title: 'Story of Gurpreet Singh Batra',
-      desc: 'Injured and Depression to Founder of GSBPATHY',
-      image: success1,
-    },
-    {
-      title: 'Fitness is key of Success',
-      desc: 'Injured and Depression to Founder of GSBPATHY',
-      image: success2,
-    },
-    {
-      title: 'Story of Gurpreet Singh Batra',
-      desc: 'Injured and Depression to Founder of GSBPATHY',
-      image: success1,
-    },
-    {
-      title: 'Fitness is key of Success',
-      desc: 'Injured and Depression to Founder of GSBPATHY',
-      image: success2,
-    },
-  ];
+
+  const [successStories, setSuccessStories] = useState([]);
+  const [token, setToken] = useState('');
+  const [userId, setUserId] = useState('');
+
+  const getSuccessStories = async () => {
+    try {
+      const response = await axios.get(`${BASE_URL}/api/story/${userId}`, {
+        headers: {
+          token: `Bearer ${token}`,
+        },
+      });
+      console.log('response ', response.data);
+      setSuccessStories(response.data.reverse());
+    } catch (error) {
+      console.log('Error:', error);
+    }
+  };
+
+  useEffect(() => {
+    const getTokenUserId = async () => {
+      try {
+        const storedToken = await retrieveData('token');
+        setToken(storedToken);
+        const storedUserId = await retrieveData('userId');
+        setUserId(storedUserId);
+      } catch (error) {
+        console.log('Error:', error);
+      }
+    };
+    getTokenUserId();
+  }, []);
+
+  useEffect(() => {
+    if (token && userId) {
+      getSuccessStories().catch(error => console.log('Error:', error));
+    }
+  }, [token, userId]);
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -45,60 +63,30 @@ const MySuccessStories = () => {
         <Text style={styles.title}>My Success Stories</Text>
         <View style={{width: 25}}></View>
       </View>
-      <ScrollView
-        style={{
-          display: 'flex',
-          flexDirection: 'row',
-          gap: 10,
-          flexWrap: 'wrap',
-          //   width: '100%',
-          //   justifyContent: 'space-between',
-          // paddingLeft: 10,
-          marginTop: 20,
-          //   backgroundColor: 'red',
-          marginBottom: 20,
-          marginHorizontal: 20,
-        }}>
-        {Success.map((item, index) => (
-          <View
-            key={index}
-            style={{
-              width: '100%',
-              // flexDirection: 'row',
-              // justifyContent: '',
-              // backgroundColor: '#ffe6c6',
-              borderRadius: 15,
-              // padding: 10,
-              borderColor: 'gray',
-              borderWidth: 1,
-              padding: 10,
-              //   backgroundColor: 'red',
-              marginBottom: 20,
-            }}>
-            <View
-              style={{
-                height: 220,
-                width: '100%',
-                alignItems: 'center',
-                //   backgroundColor: 'white',
-                marginTop: 15,
-                //   padding: 20,
-              }}>
-              <Image
-                source={item.image}
-                style={{height: '100%', width: '100%', borderRadius: 16}}
-              />
+      <ScrollView style={styles.scrollView}>
+        {successStories.map((item, index) => {
+          console.log('img url ', item?.storyImg?.secure_url);
+          const imageUrl = item?.storyImg?.secure_url;
+          return (
+            <View key={index} style={styles.storyCard}>
+              <View style={styles.imageContainer}>
+                {imageUrl ? (
+                  <Image source={{uri: imageUrl}} style={styles.imageStyle} />
+                ) : (
+                  <View style={styles.noImageContainer}>
+                    <Text style={styles.noImageText}>No Image</Text>
+                  </View>
+                )}
+              </View>
+              <View style={styles.textContainer}>
+                <Text style={styles.titleText}>{item?.title}</Text>
+                <Text style={styles.descriptionText}>{item?.description}</Text>
+              </View>
             </View>
-            <View style={{marginTop: 20}}>
-              <Text style={{fontSize: 20, fontWeight: '600', color: 'black'}}>
-                {item.title}
-              </Text>
-              <Text style={{color: 'black'}}>{item.desc}</Text>
-            </View>
-          </View>
-        ))}
+          );
+        })}
       </ScrollView>
-      <View style={{padding: 20}}>
+      <View style={styles.addButtonContainer}>
         <TouchableOpacity
           style={styles.submitButton}
           onPress={() => {
@@ -128,6 +116,57 @@ const styles = StyleSheet.create({
     fontSize: 18,
     color: 'black',
     fontWeight: '600',
+  },
+  scrollView: {
+    flex: 1,
+    marginTop: 20,
+    marginBottom: 20,
+    paddingHorizontal: 10,
+  },
+  storyCard: {
+    width: '100%',
+    backgroundColor: '#ffe6c6',
+    borderRadius: 15,
+    borderColor: 'gray',
+    borderWidth: 1,
+    padding: 10,
+    marginBottom: 20,
+  },
+  imageContainer: {
+    height: 220,
+    width: '100%',
+    alignItems: 'center',
+    marginTop: 15,
+  },
+  imageStyle: {
+    height: '100%',
+    width: '100%',
+    borderRadius: 16,
+  },
+  noImageContainer: {
+    height: '100%',
+    width: '100%',
+    borderRadius: 16,
+    backgroundColor: 'lightgray',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  noImageText: {
+    color: 'gray',
+  },
+  textContainer: {
+    marginTop: 20,
+  },
+  titleText: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: 'black',
+  },
+  descriptionText: {
+    color: 'black',
+  },
+  addButtonContainer: {
+    padding: 20,
   },
   submitButton: {
     backgroundColor: '#F6AF24',

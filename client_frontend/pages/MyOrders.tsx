@@ -1,4 +1,5 @@
 import {
+  Alert,
   Image,
   ScrollView,
   StyleSheet,
@@ -6,75 +7,91 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import React, {useState} from 'react';
+import React, {useEffect, useState} from 'react';
 import {useNavigation} from '@react-navigation/native';
 import Icons from '../Icons';
-import supplement from '../assets/supplement.png';
-
-const myorderData = [
-  {
-    productName: 'GSB Anti Diarrhoeal',
-    price: 900,
-    image: supplement,
-    deliveryStatus: 'delivered',
-    quantity: 1,
-  },
-  {
-    productName: 'GSB Anti Diarrhoeal',
-    price: 900,
-    image: supplement,
-    deliveryStatus: 'shipped',
-    quantity: 1,
-  },
-  {
-    productName: 'GSB Anti Diarrhoeal',
-    price: 900,
-    image: supplement,
-    deliveryStatus: 'shipped',
-    quantity: 1,
-  },
-  {
-    productName: 'GSB Anti Diarrhoeal',
-    price: 900,
-    image: supplement,
-    deliveryStatus: 'cancelled',
-    quantity: 1,
-  },
-  {
-    productName: 'GSB Anti Diarrhoeal',
-    price: 900,
-    image: supplement,
-
-    deliveryStatus: 'shipped',
-    quantity: 1,
-  },
-  {
-    productName: 'GSB Anti Diarrhoeal',
-    price: 900,
-    image: supplement,
-    deliveryStatus: 'delivered',
-    quantity: 1,
-  },
-  {
-    productName: 'GSB Anti Diarrhoeal',
-    price: 900,
-    image: supplement,
-    deliveryStatus: 'shipped',
-    quantity: 1,
-  },
-];
+import {useSelector} from 'react-redux';
+import {RootState} from '../redux/store';
+import {getData} from '../global/server';
+import {retrieveData} from '../utils/Storage';
 
 const MyOrders = () => {
   const navigation = useNavigation();
   const [selectedTab, setSelectedTab] = useState('TO RECEIVE');
+  const [token, setToken] = useState(null);
+  const fetchedUserId = useSelector((state: RootState) => state.auth.user?._id);
+  const [userId, setUserId] = useState(fetchedUserId);
+  const [myorderData, setMyOrderData] = useState([]);
+  const [products, setProducts] = useState([]);
 
-  const filteredOrders = myorderData.filter(order => {
+  // Fetch userId and token
+  useEffect(() => {
+    const getToken = async () => {
+      const storedToken = await retrieveData('token');
+      setToken(storedToken);
+    };
+
+    const getUserId = async () => {
+      const storedUserId = await retrieveData('userId');
+      setUserId(storedUserId);
+    };
+    getToken();
+    getUserId();
+  }, []);
+
+  // Fetch user orders
+  useEffect(() => {
+    const getUserOrders = async () => {
+      try {
+        const res = await getData(`/api/order/${userId}`, token);
+        setMyOrderData(res);
+      } catch (error) {
+        console.log('err ', error);
+        Alert.alert('Error fetching user orders');
+      }
+    };
+    if (token && userId) {
+      getUserOrders();
+    }
+  }, [token, userId]);
+
+  // Fetch product data
+  const getProducts = async () => {
+    try {
+      const response = await getData('/api/supplement', token);
+      setProducts(response);
+    } catch (err) {
+      console.log(err);
+    }
+  };
+  useEffect(() => {
+    if (token) {
+      getProducts();
+    }
+  }, [token]);
+
+  const getProductImage = productId => {
+    const product = products?.find(product => product._id === productId);
+    return product?.productImg;
+  };
+
+  const getProductName = productId => {
+    const product = products?.find(product => product._id === productId);
+    return product?.name;
+  };
+
+  const getProductPrice = productId => {
+    const product = products?.find(product => product._id === productId);
+    return product?.price;
+  };
+
+  const filteredOrders = myorderData?.filter(order => {
     if (selectedTab === 'TO RECEIVE') {
-      return order.deliveryStatus === 'shipped';
+      return order?.status === 'pending';
     } else if (selectedTab === 'COMPLETED') {
-      return order.deliveryStatus === 'delivered';
+      return order?.status === 'delivered';
     } else if (selectedTab === 'CANCELLED') {
-      return order.deliveryStatus === 'cancelled';
+      return order?.status === 'cancelled';
     }
   });
 
@@ -92,31 +109,18 @@ const MyOrders = () => {
         <View style={{width: 40}}></View>
       </View>
 
-      {/* option navigators  */}
-
-      <View
-        style={{
-          flexDirection: 'row',
-          justifyContent: 'space-between',
-          paddingHorizontal: 20,
-          borderBottomWidth: 1,
-          borderColor: 'lightgray',
-          paddingBottom: 10,
-        }}>
+      {/* Option navigators */}
+      <View style={styles.tabContainer}>
         <TouchableOpacity
           style={[
             styles.navigateButton,
-            selectedTab === 'TO RECEIVE' && {
-              backgroundColor: '#FFA800',
-            },
+            selectedTab === 'TO RECEIVE' && {backgroundColor: '#FFA800'},
           ]}
           onPress={() => handleTabPress('TO RECEIVE')}>
           <Text
             style={[
               styles.navigateButtonText,
-              selectedTab === 'TO RECEIVE' && {
-                color: 'white',
-              },
+              selectedTab === 'TO RECEIVE' && {color: 'white'},
             ]}>
             TO RECEIVE
           </Text>
@@ -130,9 +134,7 @@ const MyOrders = () => {
           <Text
             style={[
               styles.navigateButtonText,
-              selectedTab === 'COMPLETED' && {
-                color: 'white',
-              },
+              selectedTab === 'COMPLETED' && {color: 'white'},
             ]}>
             COMPLETED
           </Text>
@@ -146,9 +148,7 @@ const MyOrders = () => {
           <Text
             style={[
               styles.navigateButtonText,
-              selectedTab === 'CANCELLED' && {
-                color: 'white',
-              },
+              selectedTab === 'CANCELLED' && {color: 'white'},
             ]}>
             CANCELLED
           </Text>
@@ -156,81 +156,42 @@ const MyOrders = () => {
       </View>
 
       <ScrollView>
-        {filteredOrders.map((order, index) => (
-          <View
-            key={index}
-            style={{
-              //   backgroundColor: 'red',
-
-              marginVertical: 30,
-              flexDirection: 'column',
-              width: '100%',
-              borderWidth: 1,
-              borderColor: 'lightgray',
-            }}>
-            <View
-              style={{
-                flexDirection: 'row',
-                width: '100%',
-                paddingHorizontal: 20,
-                padding: 10,
-              }}>
-              <View>
-                <Image source={order.image} style={{width: 100, height: 100}} />
-              </View>
-              <View
-                style={{
-                  // backgroundColor: 'red',
-                  width: '70%',
-                  paddingHorizontal: 10,
-                  flexDirection: 'column',
-                  justifyContent: 'space-between',
-                  paddingBottom: 15,
-                }}>
-                <Text style={{fontWeight: '600', color: 'black'}}>
-                  {order.productName}
-                </Text>
-                <View
-                  style={{
-                    flexDirection: 'row',
-                    justifyContent: 'space-between',
-                  }}>
-                  <View
-                    style={{
-                      backgroundColor: '#FEF6F5',
-                      width: 40,
-                      flexDirection: 'row',
-                      justifyContent: 'center',
-                      borderRadius: 12,
-                    }}>
-                    <Text style={{color: '#FFA800', fontWeight: '600'}}>
-                      x {order.quantity}
+        {filteredOrders?.map((order, index) => (
+          <View key={index} style={styles.orderContainer}>
+            {order?.products?.map((product, productIndex) => (
+              <View key={productIndex} style={styles.productContainer}>
+                <Image
+                  source={{uri: getProductImage(product.productId)}}
+                  style={styles.productImage}
+                />
+                <View style={styles.productDetails}>
+                  <Text style={styles.productName}>
+                    {getProductName(product.productId)}
+                  </Text>
+                  <View style={styles.quantityPriceContainer}>
+                    <View style={styles.quantityContainer}>
+                      <Text style={styles.quantityText}>
+                        x {product.quantity}
+                      </Text>
+                    </View>
+                    <Text style={styles.priceText}>
+                      RS {getProductPrice(product.productId)}
                     </Text>
                   </View>
-                  <Text style={{color: 'black', fontWeight: '600'}}>
-                    RS {order.price}
-                  </Text>
                 </View>
               </View>
-            </View>
-            <View
-              style={{
-                flexDirection: 'row',
-                justifyContent: 'space-between',
-                borderTopWidth: 1,
-                borderColor: 'lightgray',
-                marginTop: 10,
-                padding: 10,
-              }}>
+            ))}
+            <View style={styles.orderFooter}>
               <View>
-                <Text style={{color: '#FFA800'}}>
-                  <Text style={{color: '#FFA800', fontSize: 12}}>
-                    {order.quantity} Item
+                <Text style={styles.footerText}>
+                  <Text style={styles.footerQuantity}>
+                    {order.products.reduce(
+                      (total, product) => total + product.quantity,
+                      0,
+                    )}{' '}
+                    Item
                   </Text>{' '}
-                  |{' '}
-                  <Text style={{color: '#FFA800', fontSize: 12}}>
-                    RS {order.price}
-                  </Text>
+                  | <Text style={styles.footerPrice}>RS {order.amount}</Text>
                 </Text>
               </View>
               <Icons.Entypo name="chevron-right" color={'#FFA800'} size={25} />
@@ -261,9 +222,15 @@ const styles = StyleSheet.create({
     color: 'black',
     fontWeight: '400',
   },
+  tabContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    borderBottomWidth: 1,
+    borderColor: 'lightgray',
+    paddingBottom: 10,
+  },
   navigateButton: {
-    // backgroundColor: '#FFA800',
-
     padding: 10,
     borderRadius: 16,
     paddingHorizontal: 20,
@@ -272,6 +239,74 @@ const styles = StyleSheet.create({
   },
   navigateButtonText: {
     color: 'black',
+    fontSize: 12,
+  },
+  orderContainer: {
+    marginVertical: 30,
+    flexDirection: 'column',
+    width: '100%',
+    borderWidth: 1,
+    borderColor: 'lightgray',
+  },
+  productContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '100%',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    alignItems: 'center',
+  },
+  productImage: {
+    width: 100,
+    height: 100,
+  },
+  productDetails: {
+    marginLeft: 10,
+    flexDirection: 'column',
+    justifyContent: 'space-between',
+  },
+  productName: {
+    fontWeight: '600',
+    color: 'black',
+  },
+  quantityPriceContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  quantityContainer: {
+    backgroundColor: '#FEF6F5',
+    width: 40,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    borderRadius: 12,
+    marginTop: 5,
+  },
+  quantityText: {
+    color: '#FFA800',
+    fontWeight: '600',
+  },
+  priceText: {
+    color: 'black',
+    fontWeight: '600',
+    marginTop: 5,
+  },
+  orderFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    borderTopWidth: 1,
+    borderColor: 'lightgray',
+    marginTop: 10,
+    padding: 10,
+  },
+  footerText: {
+    color: '#FFA800',
+  },
+  footerQuantity: {
+    color: '#FFA800',
+    fontSize: 12,
+  },
+  footerPrice: {
+    color: '#FFA800',
     fontSize: 12,
   },
 });

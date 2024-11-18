@@ -1,5 +1,6 @@
 import {
   Image,
+  Linking,
   ScrollView,
   StyleSheet,
   Text,
@@ -10,9 +11,22 @@ import React from 'react';
 import {useNavigation} from '@react-navigation/native';
 import Icons from '../Icons';
 import profile from '../assets/profile.png';
+import {removeDataByKey} from '../utils/Storage';
+import {logout} from '../redux/authSlice';
+import {useDispatch, useSelector} from 'react-redux';
+import {RootState} from '../redux/store';
 
 const Account = () => {
   const navigation = useNavigation();
+  const dispatch = useDispatch();
+
+  // Use useSelector to get user data from Redux store
+  const user = useSelector((state: RootState) => state.auth.user);
+
+  const handleCallPress = () => {
+    const phoneNumber = '98266555555';
+    Linking.openURL(`tel:${phoneNumber}`);
+  };
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -41,12 +55,10 @@ const Account = () => {
             }}
           /> */}
           <Image
-            source={profile}
-            style={{width: 60, height: 60, borderRadius: 50}}
+            source={{uri: user?.userImg?.secure_url || '../assets/profile.png'}}
+            style={styles.profileImage}
           />
-          <Text style={{color: 'black', fontWeight: '600', fontSize: 18}}>
-            John Doe
-          </Text>
+          <Text style={styles.profileName}>{user?.name || 'John Doe'}</Text>
         </View>
         {/* <Icons.Feather name="edit" color={'#FFA800'} size={25} /> */}
       </View>
@@ -116,6 +128,37 @@ const Account = () => {
                 <Icons.Entypo name="map" color={'#fec6ad'} size={20} />
               </View>
               <Text style={{color: 'black', fontSize: 14}}>My story</Text>
+            </View>
+            <Icons.Entypo name="chevron-right" color={'#FFA800'} size={25} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => {
+              navigation.navigate('DailyUpdates');
+            }}
+            style={{
+              flexDirection: 'row',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              paddingHorizontal: 20,
+            }}>
+            <View style={{flexDirection: 'row', alignItems: 'center', gap: 30}}>
+              <View
+                style={{
+                  width: 40,
+                  height: 40,
+                  backgroundColor: 'white',
+                  borderRadius: 50,
+                  flexDirection: 'row',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                }}>
+                <Icons.Feather
+                  name="check-square"
+                  color={'#fec6ad'}
+                  size={20}
+                />
+              </View>
+              <Text style={{color: 'black', fontSize: 14}}>Daily Updates</Text>
             </View>
             <Icons.Entypo name="chevron-right" color={'#FFA800'} size={25} />
           </TouchableOpacity>
@@ -192,7 +235,7 @@ const Account = () => {
             </View>
             <Icons.Entypo name="chevron-right" color={'#FFA800'} size={25} />
           </TouchableOpacity>
-          <TouchableOpacity
+          {/* <TouchableOpacity
             onPress={() => {
               navigation.navigate('PaymentMethod');
             }}
@@ -222,7 +265,7 @@ const Account = () => {
               <Text style={{color: 'black', fontSize: 14}}>Payment Method</Text>
             </View>
             <Icons.Entypo name="chevron-right" color={'#FFA800'} size={25} />
-          </TouchableOpacity>
+          </TouchableOpacity> */}
           <TouchableOpacity
             onPress={() => {
               navigation.navigate('Consultant');
@@ -255,9 +298,7 @@ const Account = () => {
             <Icons.Entypo name="chevron-right" color={'#FFA800'} size={25} />
           </TouchableOpacity>
           <TouchableOpacity
-            onPress={() => {
-              navigation.navigate('Services');
-            }}
+            onPress={handleCallPress}
             style={{
               flexDirection: 'row',
               justifyContent: 'space-between',
@@ -283,7 +324,7 @@ const Account = () => {
           </TouchableOpacity>
           <TouchableOpacity
             onPress={() => {
-              navigation.navigate('Services');
+              navigation.navigate('Message');
             }}
             style={{
               flexDirection: 'row',
@@ -398,7 +439,14 @@ const Account = () => {
             marginVertical: 10,
             borderRadius: 12,
           }}>
-          <View
+          <TouchableOpacity
+            onPress={async () => {
+              await removeDataByKey('isAuth');
+              await removeDataByKey('token');
+              await removeDataByKey('userId');
+              dispatch(logout());
+              navigation.navigate('SignUp');
+            }}
             style={{
               flexDirection: 'row',
               justifyContent: 'space-between',
@@ -425,7 +473,7 @@ const Account = () => {
               <Text style={{color: 'black', fontSize: 14}}>Log Out</Text>
             </View>
             <Icons.Entypo name="chevron-right" color={'#FFA800'} size={25} />
-          </View>
+          </TouchableOpacity>
         </View>
         <View style={{height: 50}}></View>
       </ScrollView>
@@ -451,5 +499,15 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: 'black',
     fontWeight: '600',
+  },
+  profileImage: {
+    width: 60,
+    height: 60,
+    borderRadius: 50,
+  },
+  profileName: {
+    color: 'black',
+    fontWeight: '600',
+    fontSize: 18,
   },
 });

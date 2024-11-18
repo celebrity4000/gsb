@@ -1,29 +1,99 @@
-import React, {useState} from 'react';
+import React, {useEffect, useState} from 'react';
 import {
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
   View,
+  Image,
 } from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 import Icons from '../Icons';
+import {launchImageLibrary} from 'react-native-image-picker';
+import {BASE_URL, postData} from '../global/server';
+import {retrieveData} from '../utils/Storage';
+import axios from 'axios';
 
 const AddMySuccessStory = () => {
   const navigation = useNavigation();
   const [image, setImage] = useState(null);
-  const [text, setText] = useState('');
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
+  const [token, setToken] = useState('');
+  const [userId, setUserId] = useState('');
+  const [submitting, setSubmitting] = useState(false); // State to track whether a story is being submitted
+
+  useEffect(() => {
+    const getTokenUserId = async () => {
+      const storedToken = await retrieveData('token');
+      setToken(storedToken);
+      const storedUserId = await retrieveData('userId');
+      setUserId(storedUserId);
+    };
+    getTokenUserId();
+  }, []);
 
   const handleImageUpload = () => {
-    // Logic to upload image
-    console.log('Image uploaded:', image);
+    launchImageLibrary(
+      {
+        mediaType: 'photo',
+        quality: 1,
+      },
+      response => {
+        if (
+          !response.didCancel &&
+          !response.error &&
+          response.assets.length > 0
+        ) {
+          const selectedImage = response.assets[0];
+          setImage({uri: selectedImage.uri});
+        }
+      },
+    );
   };
 
-  const handleTextSubmit = () => {
-    // Logic to submit text
-    console.log('Text submitted:', text);
+  const handleFormSubmit = async () => {
+    if (!submitting) {
+      // Check if a story is already being submitted
+      setSubmitting(true); // Set submitting state to true to prevent resubmission
+      try {
+        if (!token) {
+          console.log('Token not available');
+          return;
+        }
+
+        const formData = new FormData();
+        formData.append('title', title);
+        formData.append('description', description);
+        formData.append('userId', userId);
+        formData.append('file', {
+          uri: image?.uri,
+          type: 'image/jpeg',
+          name: 'storyImg.jpg',
+        });
+
+        const response = await axios.post(`${BASE_URL}/api/story/`, formData, {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+            token: `Bearer ${token}`,
+          },
+        });
+
+        if (response.status === 200) {
+          navigation.navigate('MySuccessStories');
+        } else {
+          console.log('Upload failed');
+        }
+      } catch (err) {
+        console.error('Error:', err);
+      } finally {
+        setSubmitting(false); // Reset submitting state after submission completes
+      }
+    }
   };
 
+  console.log('create story token ', token);
+  console.log('create story userId ', userId);
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -38,7 +108,7 @@ const AddMySuccessStory = () => {
           style={[styles.inputContainer, styles.imageInput]}
           onPress={handleImageUpload}>
           {image ? (
-            <Text style={styles.imageText}>Image Uploaded</Text>
+            <Image source={image} style={styles.image} />
           ) : (
             <View
               style={{flexDirection: 'column', alignItems: 'center', gap: 5}}>
@@ -52,16 +122,26 @@ const AddMySuccessStory = () => {
           )}
         </TouchableOpacity>
         <TextInput
+          style={styles.inputContainer}
+          placeholder="Enter your title here..."
+          value={title}
+          onChangeText={setTitle}
+          placeholderTextColor={'gray'}
+        />
+        <TextInput
           style={[styles.inputContainer, styles.textInput]}
           placeholder="Enter your story here..."
           multiline
-          value={text}
-          onChangeText={setText}
+          value={description}
+          onChangeText={setDescription}
           placeholderTextColor={'gray'}
         />
         <TouchableOpacity
-          style={styles.uploadButton}
-          onPress={handleTextSubmit}>
+          style={[
+            styles.uploadButton,
+            {backgroundColor: submitting ? '#fad791' : '#F6AF24'},
+          ]}
+          onPress={handleFormSubmit}>
           <Text style={styles.uploadButtonText}>Upload</Text>
         </TouchableOpacity>
       </View>
@@ -112,6 +192,11 @@ const styles = StyleSheet.create({
   imageText: {
     textAlign: 'center',
     color: 'gray',
+  },
+  image: {
+    width: 280,
+    height: 160,
+    borderRadius: 5,
   },
   textInput: {
     height: 150, // Increase the height as needed

@@ -5,23 +5,72 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import React, {useState} from 'react';
-import {useNavigation} from '@react-navigation/native';
+import React, {useEffect, useState} from 'react';
+import {useFocusEffect, useNavigation} from '@react-navigation/native';
 import Icons from '../../Icons';
+import {useSelector} from 'react-redux';
+import {RootState} from '../../redux/store';
+import {retrieveData} from '../../utils/Storage';
+import {BASE_URL} from '../../global/server';
+import axios from 'axios';
 
 const GoalWeight = () => {
   const navigation = useNavigation();
 
-  const [height, setHeight] = useState<string>('');
+  const [goalWeight, setGoalWeight] = useState<string>('');
   const [unit, setUnit] = useState<'kg' | 'lbs'>('kg');
+
+  const [token, setToken] = useState<string>(''); // State to store token
+  const userId = useSelector((state: RootState) => state.auth.user?._id); // Fetch user ID from Redux store
+  const storedWeight = useSelector(
+    (state: RootState) => state.auth.user?.goalWeight,
+  ); // Fetch user name from Redux store
+
+  useFocusEffect(
+    React.useCallback(() => {
+      if (storedWeight) {
+        navigation.navigate('GoalHeight'); // If name is already in Redux store, navigate to next screen
+      }
+    }, [storedWeight, navigation]),
+  );
+  useEffect(() => {
+    const getToken = async () => {
+      const storedToken = await retrieveData('token'); // Retrieve token from AsyncStorage
+      setToken(storedToken);
+    };
+    getToken();
+  }, []);
 
   const handleToggleUnit = () => {
     setUnit(unit === 'kg' ? 'lbs' : 'kg');
   };
 
-  const handleHeightChange = (text: string) => {
-    setHeight(text);
+  const handleGoalWeightChange = (text: string) => {
+    setGoalWeight(text);
   };
+
+  const handleNextStep = async () => {
+    const url = `${BASE_URL}/api/user/${userId}`;
+
+    try {
+      const response = await axios.put(
+        url,
+        {goalWeight: `${goalWeight} ${unit}`},
+        {headers: {token: `Bearer ${token}`}},
+      );
+
+      console.log('Response from update:', response);
+
+      if (response.data) {
+        navigation.navigate('GoalHeight');
+      } else {
+        console.error('Failed to update user data:', response);
+      }
+    } catch (error) {
+      console.error('Error updating user:', error);
+    }
+  };
+
   return (
     <View style={styles.container}>
       <View style={{marginBottom: 10}}>
@@ -51,8 +100,8 @@ const GoalWeight = () => {
           <TextInput
             style={styles.input}
             keyboardType="numeric"
-            onChangeText={handleHeightChange}
-            value={height}
+            onChangeText={handleGoalWeightChange}
+            value={goalWeight}
             placeholder="60"
             placeholderTextColor={'black'}
           />
@@ -61,11 +110,7 @@ const GoalWeight = () => {
         </View>
       </View>
 
-      <TouchableOpacity
-        style={styles.button}
-        onPress={() => {
-          navigation.navigate('GoalHeight');
-        }}>
+      <TouchableOpacity style={styles.button} onPress={handleNextStep}>
         <Text style={styles.buttonText}>Next Step</Text>
       </TouchableOpacity>
     </View>
@@ -89,12 +134,10 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 30,
     fontWeight: '500',
-    // paddingLeft: 20,
     color: 'black',
   },
   subtitle: {
     fontSize: 16,
-    // paddingLeft: 20,
     color: 'black',
   },
   button: {
@@ -110,7 +153,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
   },
-
   toggleButton: {
     paddingVertical: 8,
     paddingHorizontal: 12,

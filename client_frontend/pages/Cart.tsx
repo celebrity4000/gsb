@@ -1,5 +1,6 @@
-import React, {useState} from 'react';
+import React, {useEffect, useState} from 'react';
 import {
+  Alert,
   Image,
   ScrollView,
   StyleSheet,
@@ -10,25 +11,121 @@ import {
 } from 'react-native';
 import Icons from '../Icons';
 import gsbLogo from '../assets/gsbtransparent.png';
-import supplement from '../assets/supplement.png';
 import LinearGradient from 'react-native-linear-gradient';
-
-const CartData = [
-  {
-    title: 'GSB Anti Diarrhoeal',
-    price: 900,
-    image: supplement,
-  },
-  {
-    title: 'GSB Anti Diarrhoeal',
-    price: 900,
-    image: supplement,
-  },
-];
+import {useDispatch, useSelector} from 'react-redux';
+import {RootState} from '../redux/store';
+import {
+  decrementQuantity,
+  incrementQuantity,
+  removeFromCart,
+  setCartItems,
+  clearCart,
+} from '../redux/cartSlice';
+import {retrieveData, storeData} from '../utils/Storage';
+import axios from 'axios';
+import {BASE_URL, postData} from '../global/server';
 
 const Cart = ({navigation}: {navigation: any}) => {
+  const [deliveryAddress, setDeliveryAddress] = useState('');
   const [receiverName, setReceiverName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState('cod'); // New state for payment method
+  const dispatch = useDispatch();
+  const CartData = useSelector((state: RootState) => state.cart.items);
+  const [token, setToken] = useState(null);
+  const fetchedUserId = useSelector((state: RootState) => state.auth.user?._id);
+  const [userId, setUserId] = useState(fetchedUserId);
+
+  useEffect(() => {
+    const getToken = async () => {
+      const storedToken = await retrieveData('token'); // Retrieve token from AsyncStorage
+      setToken(storedToken);
+    };
+
+    const getUserId = async () => {
+      const storedUserId = await retrieveData('userId'); // Retrieve userId from AsyncStorage
+      setUserId(storedUserId);
+    };
+    getToken();
+    getUserId();
+  }, []);
+  console.log(token);
+  console.log(userId);
+
+  useEffect(() => {
+    const fetchCartItems = async () => {
+      const storedCartItems = await retrieveData('cartItems');
+      if (storedCartItems) {
+        dispatch(setCartItems(JSON.parse(storedCartItems)));
+      }
+    };
+    fetchCartItems();
+  }, []);
+
+  useEffect(() => {
+    const storeCartItems = async () => {
+      await storeData('cartItems', JSON.stringify(CartData));
+    };
+    storeCartItems();
+  }, [CartData]);
+
+  const handleIncrementQuantity = (id: string) => {
+    dispatch(incrementQuantity(id));
+  };
+
+  const handleDecrementQuantity = (id: string) => {
+    dispatch(decrementQuantity(id));
+  };
+
+  const handleRemoveFromCart = (id: string) => {
+    dispatch(removeFromCart(id));
+  };
+
+  const getCartItemQuantity = id => {
+    const item = CartData.find(item => item.id === id);
+    return item ? item.quantity : 0;
+  };
+
+  const handlePlaceOrder = async () => {
+    // Check if the cart is empty
+    if (CartData.length === 0) {
+      Alert.alert('No products in the cart');
+      navigation.navigate('Supplement');
+      return;
+    }
+
+    const order = {
+      userId: userId,
+      products: CartData.map(item => ({
+        productId: item.id,
+        quantity: item.quantity,
+      })),
+      amount: CartData.reduce(
+        (total, item) => total + item.price * item.quantity,
+        0,
+      ),
+      receiverName,
+      receiverPhoneNumber: phoneNumber,
+      address: {details: deliveryAddress},
+      paymentMethod,
+      status: 'pending',
+      paymentStatus: 'pending',
+    };
+
+    try {
+      const res = await postData(`/api/order`, order, token, null);
+      console.log(res);
+      if (res._id) {
+        Alert.alert('Order placed successfully!');
+        dispatch(clearCart());
+        await storeData('cartItems', JSON.stringify([]));
+        navigation.goBack();
+      }
+    } catch (err) {
+      console.error(err);
+      Alert.alert('Failed to place order');
+    }
+  };
 
   return (
     <LinearGradient
@@ -51,22 +148,31 @@ const Cart = ({navigation}: {navigation: any}) => {
         {CartData.map((item, index) => (
           <View key={index} style={styles.itemContainer}>
             <View style={styles.imageContainer}>
-              <Image source={item.image} style={styles.itemImage} />
+              <Image
+                source={{uri: item?.productImgs[0]?.secure_url}}
+                style={styles.itemImage}
+              />
             </View>
             <View style={styles.itemDetails}>
-              <Text style={styles.itemTitle}>{item.title}</Text>
+              <Text style={styles.itemTitle}>{item.name}</Text>
               <Text style={styles.itemPrice}>INR {item.price}.00</Text>
 
               <View style={styles.quantityContainer}>
-                <TouchableOpacity style={styles.quantityButton}>
+                <TouchableOpacity
+                  style={styles.quantityButton}
+                  onPress={() => handleIncrementQuantity(item.id)}>
                   <Icons.AntDesign
                     name="upcircleo"
                     color={'#FFA800'}
                     size={18}
                   />
                 </TouchableOpacity>
-                <Text style={styles.quantityText}>1</Text>
-                <TouchableOpacity style={styles.quantityButton}>
+                <Text style={styles.quantityText}>
+                  {getCartItemQuantity(item.id)}
+                </Text>
+                <TouchableOpacity
+                  style={styles.quantityButton}
+                  onPress={() => handleDecrementQuantity(item.id)}>
                   <Icons.AntDesign
                     name="downcircleo"
                     color={'#FFA800'}
@@ -79,7 +185,7 @@ const Cart = ({navigation}: {navigation: any}) => {
                   flexDirection: 'row',
                   justifyContent: 'flex-end',
                 }}>
-                <TouchableOpacity>
+                <TouchableOpacity onPress={() => handleRemoveFromCart(item.id)}>
                   <Icons.MaterialCommunityIcons
                     name="delete-outline"
                     size={25}
@@ -95,13 +201,22 @@ const Cart = ({navigation}: {navigation: any}) => {
             <Text style={styles.infoTitle}>Delivery Address</Text>
             <Icons.AntDesign name="right" size={16} color={'black'} />
           </View>
+          <TextInput
+            style={styles.input}
+            placeholder="Delivery Address"
+            value={deliveryAddress}
+            onChangeText={setDeliveryAddress}
+            placeholderTextColor={'black'}
+            multiline={true}
+            numberOfLines={4}
+            textAlignVertical="top"
+          />
         </View>
         <View style={styles.infoContainer}>
           <View style={styles.infoItem}>
             <Text style={styles.infoTitle}>Receiver Information</Text>
             <Icons.AntDesign name="right" size={16} color={'black'} />
           </View>
-          {/* Add name input field */}
           <TextInput
             style={styles.input}
             placeholder="Receiver's Name"
@@ -109,7 +224,6 @@ const Cart = ({navigation}: {navigation: any}) => {
             onChangeText={setReceiverName}
             placeholderTextColor={'black'}
           />
-          {/* Add phone number input field */}
           <TextInput
             style={styles.input}
             placeholder="Phone Number"
@@ -119,13 +233,48 @@ const Cart = ({navigation}: {navigation: any}) => {
             keyboardType="phone-pad"
           />
         </View>
+        <View style={styles.infoContainer}>
+          <View style={styles.infoItem}>
+            <Text style={styles.infoTitle}>Payment Method</Text>
+            <Icons.AntDesign name="right" size={16} color={'black'} />
+          </View>
+          <View style={styles.paymentMethodContainer}>
+            <TouchableOpacity
+              style={[
+                styles.paymentOption,
+                paymentMethod === 'cod' && styles.selectedPaymentOption,
+              ]}
+              onPress={() => setPaymentMethod('cod')}>
+              <Text style={styles.paymentOptionText}>
+                Cash on Delivery (COD)
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[
+                styles.paymentOption,
+                paymentMethod === 'online' && styles.selectedPaymentOption,
+              ]}
+              disabled={true} // Disable online payment option
+              onPress={() => setPaymentMethod('online')}>
+              <Text style={styles.paymentOptionTextDisabled}>
+                Online Payment (Unavailable)
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
       </ScrollView>
       <TouchableOpacity
         style={styles.button}
         onPress={() => {
-          navigation.navigate('PaymentMethod');
+          if (paymentMethod === 'cod') {
+            handlePlaceOrder();
+          } else {
+            navigation.navigate('PaymentMethod');
+          }
         }}>
-        <Text style={styles.buttonText}>CHECK OUT</Text>
+        <Text style={styles.buttonText}>
+          {paymentMethod === 'cod' ? 'PLACE ORDER' : 'CHECK OUT'}
+        </Text>
       </TouchableOpacity>
     </LinearGradient>
   );
@@ -246,5 +395,28 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 7,
     marginTop: 10,
+  },
+  paymentMethodContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 10,
+  },
+  paymentOption: {
+    flex: 1,
+    padding: 10,
+    borderWidth: 1,
+    borderColor: '#FFA800',
+    borderRadius: 5,
+    marginHorizontal: 5,
+    alignItems: 'center',
+  },
+  selectedPaymentOption: {
+    backgroundColor: '#FFA800',
+  },
+  paymentOptionText: {
+    color: 'black',
+  },
+  paymentOptionTextDisabled: {
+    color: 'gray',
   },
 });

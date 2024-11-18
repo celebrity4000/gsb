@@ -6,7 +6,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import React from 'react';
+import React, {useEffect, useState} from 'react';
 import LinearGradient from 'react-native-linear-gradient'; // Import LinearGradient
 import heroImage from '../assets/home/hero.png';
 import CatImg1 from '../assets/home/cat1.png';
@@ -15,6 +15,10 @@ import CatImg3 from '../assets/home/cat3.png';
 import CatImg4 from '../assets/home/cat4.png';
 import CatImg5 from '../assets/home/cat5.png';
 import CatImg6 from '../assets/home/cat6.png';
+import CatImg7 from '../assets/home/cat7.png';
+import CatImg8 from '../assets/home/cat8.png';
+import CatImg9 from '../assets/home/cat9.png';
+import CatImg10 from '../assets/home/cat10.png';
 import inner1 from '../assets/home/innerpeace1.png';
 import inner2 from '../assets/home/innerpeace2.png';
 import inner3 from '../assets/home/innerpeace3.png';
@@ -26,6 +30,12 @@ import success2 from '../assets/home/success2.png';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import Icons from '../Icons';
 import {useNavigation} from '@react-navigation/native';
+import {useDispatch, useSelector} from 'react-redux';
+import {RootState} from '../redux/store';
+import {retrieveData} from '../utils/Storage';
+import {getData} from '../global/server';
+import {updateUser} from '../redux/authSlice';
+import Carousel from '../components/ParalaxCarousel';
 
 const Categories = [
   {
@@ -35,12 +45,12 @@ const Categories = [
   },
   {
     title: 'Consultant',
-    image: CatImg2,
+    image: CatImg7,
     link: 'Consultant',
   },
   {
     title: 'Supplements',
-    image: CatImg3,
+    image: CatImg8,
     link: 'Supplement',
   },
   {
@@ -50,12 +60,12 @@ const Categories = [
   },
   {
     title: 'Astrology',
-    image: CatImg5,
+    image: CatImg9,
     link: '',
   },
   {
     title: 'Horrorscope',
-    image: CatImg6,
+    image: CatImg10,
     link: '',
   },
 ];
@@ -109,6 +119,48 @@ const Success = [
 
 const Home = () => {
   const navigation = useNavigation();
+  const dispatch = useDispatch();
+  const [user, setUser] = useState({});
+  const [token, setToken] = useState<string>(''); // State to store token
+  const fetchedUserId = useSelector((state: RootState) => state.auth.user?._id); // Fetch user ID from Redux storeconst {userId, token} = useSelector(state => state.auth); // Assume auth state has userId and token
+  const [userId, setUserId] = useState(fetchedUserId);
+  useEffect(() => {
+    const getToken = async () => {
+      const storedToken = await retrieveData('token'); // Retrieve token from AsyncStorage
+      setToken(storedToken);
+    };
+
+    const getUserId = async () => {
+      const storedUserId = await retrieveData('userId'); // Retrieve userId from AsyncStorage
+      setUserId(storedUserId);
+    };
+    getToken();
+    getUserId();
+  }, []);
+
+  console.log('home token ', token);
+  console.log('home userId ', userId);
+
+  useEffect(() => {
+    const userData = async () => {
+      const response = await getData(`/api/user/find/${userId}`, token);
+      console.log('response ', response);
+      setUser(response);
+    };
+    userData();
+    //update the userdata in the redux
+    dispatch(updateUser(user));
+    console.log('fetched user');
+  }, [userId, token]);
+
+  console.log(user);
+  dispatch(updateUser(user));
+  const storedName = useSelector(
+    (state: RootState) =>
+      state.auth.user?.name || state.auth.user?.phoneNumber || user?.name,
+  ); // Fetch user name from Redux store
+  const firstName = storedName?.split(' ')[0]; // Extract the left part before the first space
+
   return (
     <View style={{flex: 1, backgroundColor: 'white'}}>
       <View
@@ -125,7 +177,9 @@ const Home = () => {
             navigation.navigate('ProfileInfo');
           }}
           style={{flexDirection: 'row', alignItems: 'center', gap: 10}}>
-          <Text style={{fontWeight: '500', color: 'black'}}>Hi, Name</Text>
+          <Text style={{fontWeight: '500', color: 'black'}}>
+            Hi, {firstName}
+          </Text>
           <Icons.MaterialCommunityIcons
             name="account"
             size={30}
@@ -133,10 +187,11 @@ const Home = () => {
           />
         </TouchableOpacity>
       </View>
+
       <ScrollView
         showsVerticalScrollIndicator={false}
         style={{width: '100%', backgroundColor: 'white'}}>
-        <View style={styles.heroContainer}>
+        {/* <View style={styles.heroContainer}>
           <View style={{width: '60%'}}>
             <Text style={{fontWeight: '600', color: 'black', fontSize: 18}}>
               Full Body Workout Training
@@ -162,7 +217,9 @@ const Home = () => {
             }}>
             <Image source={heroImage} />
           </View>
-        </View>
+        </View> */}
+
+        <Carousel />
 
         <View style={styles.categoryContainer}>
           <Text style={{fontSize: 20, fontWeight: '800', color: 'black'}}>
@@ -201,10 +258,10 @@ const Home = () => {
             <Text style={{fontSize: 20, fontWeight: '800', color: 'black'}}>
               INNERPEACE
             </Text>
-            <View style={{flexDirection: 'row', alignItems: 'center'}}>
+            {/* <View style={{flexDirection: 'row', alignItems: 'center'}}>
               <Text style={{fontSize: 16, color: '#FFA800'}}>View All</Text>
               <MaterialIcons name="navigate-next" size={25} color={'#FFA800'} />
-            </View>
+            </View> */}
           </View>
 
           <View
@@ -293,10 +350,10 @@ const Home = () => {
             <Text style={{fontSize: 20, fontWeight: '800', color: 'black'}}>
               CONSULTANT
             </Text>
-            <View style={{flexDirection: 'row', alignItems: 'center'}}>
+            {/* <View style={{flexDirection: 'row', alignItems: 'center'}}>
               <Text style={{fontSize: 16, color: '#FFA800'}}>View All</Text>
               <MaterialIcons name="navigate-next" size={25} color={'#FFA800'} />
-            </View>
+            </View> */}
           </View>
 
           <View
@@ -371,7 +428,7 @@ const Home = () => {
             <TouchableOpacity
               style={{flexDirection: 'row', alignItems: 'center', gap: 5}}
               onPress={() => {
-                navigation.navigate('MySuccessStories');
+                navigation.navigate('SuccessStories');
               }}>
               <Text style={{color: '#FFA800'}}>View More</Text>
               <Icons.Entypo name="chevron-right" color={'#FFA800'} size={20} />

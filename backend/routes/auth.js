@@ -26,7 +26,7 @@ router.post("/phone-login", async (req, res) => {
 
     // Send OTP to the user's phone using Twilio Verify
     const verification = await twilioClient.verify
-      .services(verifyServiceSid)
+      v2.services(verifyServiceSid)
       .verifications.create({ to: phone, channel: "sms" });
 
     console.log(`Sent verification: '${verification.sid}'`);
@@ -39,6 +39,9 @@ router.post("/phone-login", async (req, res) => {
 // Route to handle OTP verification
 router.post("/verify-otp", async (req, res) => {
   const { phone, otp } = req.body;
+  console.log(`Verifying OTP: '${otp}' for phone: '${phone}'`);
+  console.log(`Service SID: '${verifyServiceSid}'`);
+  console.log(`JWT Secret: '${jwtSecret}'`);
   try {
     // Find user by phone
     const user = await User.findOne({ phoneNumber: phone });
@@ -49,9 +52,12 @@ router.post("/verify-otp", async (req, res) => {
     }
 
     // Verify the OTP using Twilio Verify
-    const verificationCheck = await twilioClient.verify
-      .services(verifyServiceSid)
-      .verificationChecks.create({ to: phone, code: otp });
+    const verificationCheck = await twilioClient.verify.v2
+    .services(verifyServiceSid)
+    .verificationChecks.create({ to: phone, code: otp });
+
+
+    console.log(`Verification status: '${verificationCheck.status}'`);
 
     if (verificationCheck.status === "approved") {
       // Mark the user as verified
@@ -77,6 +83,7 @@ router.post("/verify-otp", async (req, res) => {
       res.status(400).send({ success: false, message: "Invalid OTP." });
     }
   } catch (error) {
+    console.log(error);
     res.status(500).send({ success: false, error: error.message });
   }
 });

@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, {useEffect, useState} from 'react';
 import {
   StyleSheet,
   Text,
@@ -10,96 +10,58 @@ import {
 import {useNavigation} from '@react-navigation/native';
 import Icons from '../../Icons';
 import gsbLogo from '../../assets/gsbtransparent.png';
-
-const ServiceData = [
-  {
-    question: 'Do you have IBS?',
-    answers: ['Yes', 'No'],
-    singleChoice: true,
-  },
-  {
-    question: 'Which Type Of IBS You Have?',
-    answers: ['IBS-C', 'IBS-B', 'IBS-M'],
-    singleChoice: false,
-  },
-  {
-    question: 'What Are Your Symptoms?',
-    answers: [
-      'Diarrhea with mucus',
-      'Constipation',
-      'Excessive gas & bloating',
-      'Abdominal',
-      'Stress',
-      'Anxiety',
-      'Overthinking',
-      'Irritable',
-      'Lack of focus',
-      'Disrub sleeping pattern',
-      'Weight loss',
-    ],
-    singleChoice: false,
-  },
-  {
-    question: 'How is the environment of your family?',
-    answers: ['Stressfull', 'Happy', 'All of Them'],
-    singleChoice: true,
-  },
-  {
-    question: 'How long have you had this problem?',
-    answers: ['6-12 Month', 'More than 1 Year', 'More than 5 Year', 'Other'],
-    singleChoice: true,
-  },
-  {
-    question: 'Have you taken any treatment have you taken ?',
-    answers: ['Allopathy', 'Homeopathic', 'Ayurvedic', 'All'],
-    singleChoice: false,
-  },
-  {
-    question: 'Which type of test have you taken?',
-    answers: [
-      'Sonography',
-      'Ultrasound',
-      'Endoscopy',
-      'CBC',
-      'LFT',
-      'Thyroid profile',
-      'KFT',
-      'Lipid profile',
-    ],
-    singleChoice: false,
-  },
-  {
-    question: 'How is your lifestyle?',
-    answers: ['Alcohol', 'Smoking', 'Bad foods habit', 'All'],
-    singleChoice: false,
-  },
-];
+import {completeSignup} from '../../redux/authSlice';
+import {useDispatch} from 'react-redux';
+import {retrieveData, storeData} from '../../utils/Storage';
+import {getData} from '../../global/server';
 
 const FirstForm = () => {
   const navigation = useNavigation();
-  const [selectedAnswers, setSelectedAnswers] = useState(
-    Array.from({length: ServiceData.length}, () => new Set()),
-  );
+  const dispatch = useDispatch();
+  const [questions, setQuestions] = useState([]);
+  const [selectedAnswers, setSelectedAnswers] = useState([]);
+  const [token, setToken] = useState('');
+  const [userId, setUserId] = useState('');
 
-  // const handleAnswerSelect = (questionIndex, answerIndex) => {
-  //   const newSelectedAnswers = [...selectedAnswers];
-  //   const selectedSet = new Set(selectedAnswers[questionIndex]);
-  //   if (selectedSet.has(answerIndex)) {
-  //     selectedSet.delete(answerIndex);
-  //   } else {
-  //     selectedSet.add(answerIndex);
-  //   }
-  //   newSelectedAnswers[questionIndex] = selectedSet;
-  //   setSelectedAnswers(newSelectedAnswers);
-  // };
+  useEffect(() => {
+    const getTokenUserId = async () => {
+      const storedToken = await retrieveData('token');
+      setToken(storedToken);
+      const storedUserId = await retrieveData('userId');
+      setUserId(storedUserId);
+    };
+    getTokenUserId();
+  }, []);
 
-  const handleSingleChoiceSelect = (questionIndex, answerIndex) => {
+  useEffect(() => {
+    const fetchQuestions = async () => {
+      try {
+        const response = await getData('/api/serviceQuestions', token); // Replace with your endpoint
+        setQuestions(response);
+        setSelectedAnswers(
+          Array.from({length: response.length}, () => new Set()),
+        );
+      } catch (error) {
+        console.error('Error fetching questions:', error);
+      }
+    };
+
+    fetchQuestions();
+  }, [token]);
+
+  const handleSingleChoiceSelect = (
+    questionIndex: number,
+    answerIndex: number,
+  ) => {
     const newSelectedAnswers = [...selectedAnswers];
     newSelectedAnswers[questionIndex] = new Set([answerIndex]);
     setSelectedAnswers(newSelectedAnswers);
   };
 
-  const handleMultipleChoiceSelect = (questionIndex, answerIndex) => {
+  const handleMultipleChoiceSelect = (
+    questionIndex: number,
+    answerIndex: number,
+  ) => {
     const newSelectedAnswers = [...selectedAnswers];
     const selectedSet = newSelectedAnswers[questionIndex];
     if (selectedSet.has(answerIndex)) {
@@ -110,12 +72,27 @@ const FirstForm = () => {
     setSelectedAnswers(newSelectedAnswers);
   };
 
-  const handleAnswerSelect = (questionIndex, answerIndex) => {
-    if (ServiceData[questionIndex].singleChoice) {
-      handleSingleChoiceSelect(questionIndex, answerIndex);
-    } else {
+  const handleAnswerSelect = (questionIndex: number, answerIndex: number) => {
+    if (questions[questionIndex].isMultipleChoice) {
       handleMultipleChoiceSelect(questionIndex, answerIndex);
+    } else {
+      handleSingleChoiceSelect(questionIndex, answerIndex);
     }
+  };
+
+  const handleSubmit = () => {
+    const result =
+      questions &&
+      questions.map((question, index) => ({
+        question: question.questionText,
+        selectedOptions: Array.from(selectedAnswers[index]).map(
+          i => question.options[i],
+        ),
+      }));
+    console.log(result);
+    dispatch(completeSignup());
+    storeData('isAuth', true);
+    navigation.navigate('TabNavigator');
   };
 
   return (
@@ -136,42 +113,40 @@ const FirstForm = () => {
           paddingHorizontal: 20,
           marginBottom: 20,
         }}>
-        {ServiceData.map((item, index) => (
-          <View key={index} style={styles.questionContainer}>
-            <Text style={styles.question}>{item.question}</Text>
-            <View
-              style={{
-                borderRadius: 12,
-                borderWidth: 1,
-                borderColor: '#FFA800',
-                padding: 10,
-                // backgroundColor: 'red',
-              }}>
-              {item.answers.map((answer, i) => (
-                <TouchableOpacity
-                  key={i}
-                  style={styles.answer}
-                  onPress={() => handleAnswerSelect(index, i)}>
-                  <View
-                    style={[
-                      styles.checkbox,
-                      {
-                        backgroundColor: selectedAnswers[index].has(i)
-                          ? '#F6AF24'
-                          : 'transparent',
-                      },
-                    ]}
-                  />
-                  <Text style={styles.answerText}>{answer}</Text>
-                </TouchableOpacity>
-              ))}
+        {questions &&
+          questions?.map((item, index) => (
+            <View key={index} style={styles.questionContainer}>
+              <Text style={styles.question}>{item.questionText}</Text>
+              <View
+                style={{
+                  borderRadius: 12,
+                  borderWidth: 1,
+                  borderColor: '#FFA800',
+                  padding: 10,
+                }}>
+                {item.options.map((answer: string, i: number) => (
+                  <TouchableOpacity
+                    key={i}
+                    style={styles.answer}
+                    onPress={() => handleAnswerSelect(index, i)}>
+                    <View
+                      style={[
+                        styles.checkbox,
+                        {
+                          backgroundColor: selectedAnswers[index]?.has(i)
+                            ? '#F6AF24'
+                            : 'transparent',
+                        },
+                      ]}
+                    />
+                    <Text style={styles.answerText}>{answer}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
             </View>
-          </View>
-        ))}
+          ))}
         <TouchableOpacity
-          onPress={() => {
-            navigation.navigate('TabNavigator');
-          }}
+          onPress={handleSubmit}
           style={{
             backgroundColor: '#F6AF24',
             padding: 16,
@@ -180,7 +155,7 @@ const FirstForm = () => {
             marginBottom: 20,
           }}>
           <Text style={{color: 'white', fontWeight: '600', fontSize: 16}}>
-            SUMBIT
+            SUBMIT
           </Text>
         </TouchableOpacity>
       </ScrollView>
@@ -218,10 +193,6 @@ const styles = StyleSheet.create({
   answer: {
     paddingVertical: 8,
     paddingHorizontal: 12,
-    // margin: 4,
-    borderRadius: 20,
-    // borderWidth: 1,
-    // borderColor: '#ccc',
     flexDirection: 'row',
     alignItems: 'center',
   },

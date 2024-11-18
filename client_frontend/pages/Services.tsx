@@ -1,37 +1,71 @@
 import {
   Image,
+  Linking,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from 'react-native';
-import React from 'react';
+import React, {useEffect, useState} from 'react';
 import Icons from '../Icons';
 import gsbLogo from '../assets/gsbtransparent.png';
 import {useNavigation} from '@react-navigation/native';
 import service from '../assets/service.png';
+import service1 from '../assets/service1.png';
+import service2 from '../assets/service2.png';
+import service3 from '../assets/service3.png';
+import {useDispatch, useSelector} from 'react-redux';
+import {RootState} from '../redux/store';
+import {retrieveData, storeData} from '../utils/Storage';
+import {setCartItems} from '../redux/cartSlice';
+import {green} from 'react-native-reanimated/lib/typescript/reanimated2/Colors';
 
 const ServiceData = [
   {
     title: `IBS Colitis & Crohn's`,
     desc: 'IBS (irritable bowel syndrome) is a lifestyle disorder that affects the gastrointestinal tract and large intestine (colon).',
-    image: service,
+    image: service1,
   },
   {
     title: 'DIABETES',
     desc: 'Type 2 diabetes is a chronic metabolic disorder characterised by insulin resistance and relative insulin deficiency.',
-    image: service,
+    image: service2,
   },
   {
     title: 'Mental Depression',
     desc: `IBD stands for Inflammatory Bowel Disease. It's a term used to describe chronic inflammation of the digestive tract.`,
-    image: service,
+    image: service3,
   },
 ];
 
 const Services = () => {
   const navigation = useNavigation();
+  // const CartData = useSelector((state: RootState) => state.cart.items);
+  const [CartData, setCartData] = useState([]);
+  const dispatch = useDispatch();
+
+  useEffect(() => {
+    const storeCartItems = async () => {
+      const storedCartItems = await retrieveData('cartItems');
+      if (storedCartItems) {
+        setCartData(JSON.parse(storedCartItems));
+      }
+    };
+    storeCartItems();
+  }, []);
+
+  const handleCallPress = () => {
+    const phoneNumber = '98266555555';
+    Linking.openURL(`tel:${phoneNumber}`);
+  };
+
+  const getCartItemQuantity = id => {
+    const item = CartData.find(item => item.id === id);
+    return item ? item.quantity : 0;
+  };
+
+  const totalCartItems = CartData.reduce((sum, item) => sum + item.quantity, 0);
 
   return (
     <View style={styles.container}>
@@ -55,6 +89,11 @@ const Services = () => {
             navigation.navigate('Cart');
           }}>
           <Icons.Feather name="shopping-bag" size={25} color={'black'} />
+          {totalCartItems > 0 && (
+            <View style={styles.badge}>
+              <Text style={styles.badgeText}>{totalCartItems}</Text>
+            </View>
+          )}
         </TouchableOpacity>
         {/* <Text style={{fontSize: 20, color: 'black', fontWeight: '800'}}>
           Fitness
@@ -84,7 +123,8 @@ const Services = () => {
             justifyContent: 'center',
             gap: 10,
             borderRadius: 12,
-          }}>
+          }}
+          onPress={handleCallPress}>
           <Icons.Ionicons name="call" size={20} />
           <Text style={{fontWeight: '800', fontSize: 18}}>Call</Text>
         </TouchableOpacity>
@@ -99,6 +139,9 @@ const Services = () => {
             justifyContent: 'center',
             gap: 10,
             borderRadius: 12,
+          }}
+          onPress={() => {
+            navigation.navigate('Message');
           }}>
           <Icons.Feather name="message-square" size={20} />
           <Text style={{fontWeight: '800', fontSize: 18}}>Message</Text>
@@ -185,5 +228,20 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: 'white',
+  },
+  badge: {
+    position: 'absolute',
+    right: -10,
+    top: -10,
+    backgroundColor: 'red',
+    borderRadius: 10,
+    width: 20,
+    height: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  badgeText: {
+    color: 'white',
+    fontSize: 12,
   },
 });

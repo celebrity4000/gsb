@@ -6,31 +6,61 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import React, {useState} from 'react';
+import React, {useEffect, useState} from 'react';
 import {useNavigation} from '@react-navigation/native';
 import Icons from '../../Icons';
 import weight from '../../assets/weightMachine.png';
 import mental from '../../assets/mentalHealth.png';
+import {useDispatch, useSelector} from 'react-redux';
+import {completeSignup} from '../../redux/authSlice';
+import {BASE_URL} from '../../global/server';
+import axios from 'axios';
+import {RootState} from '../../redux/store';
+import {retrieveData, storeData} from '../../utils/Storage';
 
-const GoalHeight = () => {
+const Goal = () => {
   const navigation = useNavigation();
+  const dispatch = useDispatch();
+  const [token, setToken] = useState<string>(''); // State to store token
+  const userId = useSelector((state: RootState) => state.auth.user?._id); // Fetch user ID from Redux storeconst {userId, token} = useSelector(state => state.auth); // Assume auth state has userId and token
+  useEffect(() => {
+    const getToken = async () => {
+      const storedToken = await retrieveData('token'); // Retrieve token from AsyncStorage
+      setToken(storedToken);
+    };
+    getToken();
+  }, []);
 
-  const [height, setHeight] = useState<string>('');
-  const [unit, setUnit] = useState<'feet' | 'cm'>('feet');
+  const handleGoalSelection = async (goal: string, navigateTo: string) => {
+    const url = `${BASE_URL}/api/user/${userId}`;
+    console.log(url);
 
-  const handleToggleUnit = () => {
-    setUnit(unit === 'feet' ? 'cm' : 'feet');
-  };
+    try {
+      const response = await axios.put(
+        url,
+        {goal},
+        {headers: {token: `Bearer ${token}`}},
+      );
+      console.log('Response from update:', response);
 
-  const handleHeightChange = (text: string) => {
-    setHeight(text);
-  };
+      if (response.status === 200) {
+        if (navigateTo === 'FirstForm') {
+          navigation.navigate('FirstForm', {goal});
+        } else {
+          dispatch(completeSignup());
+          await storeData('isAuth', true);
 
-  const handleClearAndReplace = () => {
-    navigation.reset({
-      index: 0,
-      routes: [{name: 'TabNavigator'}],
-    });
+          navigation.reset({
+            index: 0,
+            routes: [{name: 'TabNavigator'}],
+          });
+        }
+      } else {
+        console.error('Failed to update user data:', response);
+      }
+    } catch (error) {
+      console.error('Error updating user:', error);
+    }
   };
   return (
     <View style={styles.container}>
@@ -52,7 +82,7 @@ const GoalHeight = () => {
       <View style={{flexDirection: 'column', gap: 40}}>
         <TouchableOpacity
           onPress={() => {
-            navigation.navigate('FirstForm');
+            handleGoalSelection("IBS Colitis & Crohn's", 'FirstForm');
           }}
           style={{
             borderColor: 'black',
@@ -70,7 +100,7 @@ const GoalHeight = () => {
         </TouchableOpacity>
         <TouchableOpacity
           onPress={() => {
-            navigation.navigate('FirstForm');
+            handleGoalSelection('Diabetes', 'FirstForm');
           }}
           style={{
             borderColor: 'black',
@@ -92,7 +122,7 @@ const GoalHeight = () => {
         </TouchableOpacity>
         <TouchableOpacity
           onPress={() => {
-            navigation.navigate('FirstForm');
+            handleGoalSelection('Mental Depression', 'TabNavigator');
           }}
           style={{
             borderColor: 'black',
@@ -109,7 +139,9 @@ const GoalHeight = () => {
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
-          onPress={handleClearAndReplace}
+          onPress={() => {
+            handleGoalSelection('E-Commerce', 'TabNavigator');
+          }}
           style={{
             borderColor: 'black',
             borderWidth: 1,
@@ -126,14 +158,21 @@ const GoalHeight = () => {
         </TouchableOpacity>
       </View>
 
-      <TouchableOpacity style={styles.button} onPress={handleClearAndReplace}>
+      <TouchableOpacity
+        style={styles.button}
+        onPress={() => {
+          navigation.reset({
+            index: 0,
+            routes: [{name: 'TabNavigator'}],
+          });
+        }}>
         <Text style={styles.buttonText}>Next Step</Text>
       </TouchableOpacity>
     </View>
   );
 };
 
-export default GoalHeight;
+export default Goal;
 
 const styles = StyleSheet.create({
   container: {

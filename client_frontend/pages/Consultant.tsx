@@ -1,3 +1,4 @@
+import React, {useEffect, useState} from 'react';
 import {
   Alert,
   Image,
@@ -9,10 +10,12 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import React, {useState} from 'react';
 import Icons from '../Icons';
 import gsbLogo from '../assets/gsbtransparent.png';
 import {useNavigation} from '@react-navigation/native';
+import axios from 'axios'; // Import axios
+import {BASE_URL} from '../global/server'; // Ensure BASE_URL is defined correctly
+import {retrieveData} from '../utils/Storage';
 
 const Consultant = () => {
   const navigation = useNavigation();
@@ -23,6 +26,22 @@ const Consultant = () => {
     phoneNumber: '',
     message: '',
   });
+  const [token, setToken] = useState('');
+  const [userId, setUserId] = useState('');
+
+  useEffect(() => {
+    const getTokenUserId = async () => {
+      try {
+        const storedToken = await retrieveData('token');
+        setToken(storedToken);
+        const storedUserId = await retrieveData('userId');
+        setUserId(storedUserId);
+      } catch (error) {
+        console.log('Error:', error);
+      }
+    };
+    getTokenUserId();
+  }, []);
 
   const handleChange = (name, value) => {
     setFormData({
@@ -31,11 +50,31 @@ const Consultant = () => {
     });
   };
 
-  const handleSubmit = () => {
-    // Handle form submission logic here
-    console.log('Form submitted!', formData);
-    alert('We will get back to you soon');
-    navigation.goBack();
+  const handleSubmit = async () => {
+    try {
+      const response = await axios.post(
+        `${BASE_URL}/api/consultation/`,
+        formData,
+        {
+          headers: {
+            token: `Bearer ${token}`,
+          },
+        },
+      );
+
+      if (response.status === 200) {
+        Alert.alert('Success', 'We will get back to you soon');
+        navigation.goBack();
+      } else {
+        Alert.alert('Error', 'Failed to submit consultation');
+      }
+    } catch (err) {
+      console.error('Error:', err);
+      Alert.alert(
+        'Error',
+        'An error occurred while submitting the consultation',
+      );
+    }
   };
 
   return (
