@@ -30,7 +30,7 @@ router.post("/phone-login", async (req, res) => {
       .services(verifyServiceSid)
       .verifications.create({ to: phone, channel: "sms" });
 
-    console.log(`Sent verification: '${verification.sid}'`);
+    // console.log(`Sent verification: '${verification.sid}'`);
     res.status(200).send({ success: true, message: "OTP sent to your phone." });
   } catch (error) {
     console.log(error);
