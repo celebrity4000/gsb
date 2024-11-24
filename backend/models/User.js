@@ -11,6 +11,7 @@ const UserSchema = new mongoose.Schema(
     golWeight: { type: String },
     goalHeight: { type: String },
     address: { type: String },
+    firstTimeLogin: { type: Boolean, default: true },
 
     goal: { type: String },
 

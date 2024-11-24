@@ -3,6 +3,7 @@ const router = express.Router();
 const User = require("../models/User");
 const twilio = require("twilio");
 const jwt = require("jsonwebtoken");
+const { phone: numberValidator } = require('phone');
 require("dotenv").config();
 
 const twilioClient = twilio(
@@ -18,8 +19,17 @@ router.post("/phone-login", async (req, res) => {
   const { phone } = req.body;
   try {
     // Find or create user by phone number
+
+    const validateMobileNukmber = numberValidator(phone, { country : "IN"});
+
+    if(!validateMobileNukmber.isValid){
+      return res.status(400).send({ success: false, message: "Invalid Phone Number" });
+    }
+
+
     let user = await User.findOne({ phoneNumber: phone });
     if (!user) {
+      console.log("User not found, creating new user...");
       user = new User({ phoneNumber: phone });
       await user.save();
     }
@@ -30,7 +40,7 @@ router.post("/phone-login", async (req, res) => {
       .services(verifyServiceSid)
       .verifications.create({ to: phone, channel: "sms" });
 
-    // console.log(`Sent verification: '${verification.sid}'`);
+    console.log(`Sent verification: '${verification.sid}'`);
     res.status(200).send({ success: true, message: "OTP sent to your phone." });
   } catch (error) {
     console.log(error);
@@ -66,6 +76,22 @@ router.post("/verify-otp", async (req, res) => {
       // Spread user data directly into the response object
       const { _id, phoneNumber, verified, isAdmin } = user._doc;
 
+      if(user.firstTimeLogin){
+        user.firstTimeLogin = false;
+        await user.save();
+        return res.status(200).send({
+          success: true,
+          message: "User verified successfully.",
+          token,
+          _id,
+          phoneNumber,
+          verified,
+          isAdmin,
+          firstTimeLogin: user.firstTimeLogin,
+        });
+      }
+
+
       res.status(200).send({
         success: true,
         message: "User verified successfully.",
@@ -74,6 +100,7 @@ router.post("/verify-otp", async (req, res) => {
         phoneNumber,
         verified,
         isAdmin,
+        firstTimeLogin: false,
       });
     } else {
       res.status(400).send({ success: false, message: "Invalid OTP." });
