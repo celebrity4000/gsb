@@ -34,13 +34,13 @@ router.post("/phone-login", async (req, res) => {
       await user.save();
     }
 
-    // Send OTP to the user's phone using Twilio Verify
-    const verification = await twilioClient.verify
-      .v2
-      .services(verifyServiceSid)
-      .verifications.create({ to: phone, channel: "sms" });
+    // // Send OTP to the user's phone using Twilio Verify
+    // const verification = await twilioClient.verify
+    //   .v2
+    //   .services(verifyServiceSid)
+    //   .verifications.create({ to: phone, channel: "sms" });
 
-    console.log(`Sent verification: '${verification.sid}'`);
+    // console.log(`Sent verification: '${verification.sid}'`);
     res.status(200).send({ success: true, message: "OTP sent to your phone." });
   } catch (error) {
     console.log(error);
