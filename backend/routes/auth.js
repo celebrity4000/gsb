@@ -73,10 +73,11 @@ router.post("/verify-otp", async (req, res) => {
       // Generate JWT token
       const token = jwt.sign({ id: user._id }, jwtSecret, { expiresIn: "90d" });
 
+
       // Spread user data directly into the response object
       const { _id, phoneNumber, verified, isAdmin } = user._doc;
 
-      if(user.firstTimeLogin){
+      if(user?.firstTimeLogin){
         user.firstTimeLogin = false;
         await user.save();
         return res.status(200).send({
@@ -86,7 +87,7 @@ router.post("/verify-otp", async (req, res) => {
           _id,
           phoneNumber,
           verified,
-          isAdmin,
+          isAdmin: isAdmin ? true : false,
           firstTimeLogin: true,
         });
       }
@@ -99,7 +100,7 @@ router.post("/verify-otp", async (req, res) => {
         _id,
         phoneNumber,
         verified,
-        isAdmin,
+        isAdmin: isAdmin ? true : false,
         firstTimeLogin: false,
       });
     } else {
