@@ -87,7 +87,7 @@ router.post("/verify-otp", async (req, res) => {
           phoneNumber,
           verified,
           isAdmin,
-          firstTimeLogin: user.firstTimeLogin,
+          firstTimeLogin: true,
         });
       }
 
