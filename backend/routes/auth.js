@@ -34,11 +34,11 @@ router.post("/phone-login", async (req, res) => {
       await user.save();
     }
 
-    // // Send OTP to the user's phone using Twilio Verify
-    // const verification = await twilioClient.verify
-    //   .v2
-    //   .services(verifyServiceSid)
-    //   .verifications.create({ to: phone, channel: "sms" });
+    // Send OTP to the user's phone using Twilio Verify
+    const verification = await twilioClient.verify
+      .v2
+      .services(verifyServiceSid)
+      .verifications.create({ to: phone, channel: "sms" });
 
     // console.log(`Sent verification: '${verification.sid}'`);
     res.status(200).send({ success: true, message: "OTP sent to your phone." });
@@ -61,11 +61,11 @@ router.post("/verify-otp", async (req, res) => {
     }
 
     // Verify the OTP using Twilio Verify
-    // const verificationCheck = await twilioClient.verify
-    //   .services(verifyServiceSid)
-    //   .verificationChecks.create({ to: phone, code: otp });
+    const verificationCheck = await twilioClient.verify
+      .services(verifyServiceSid)
+      .verificationChecks.create({ to: phone, code: otp });
 
-    const verificationCheck = otp == '1234' ? { status: "approved" } : { status: "denied" };
+    // const verificationCheck = otp == '123456' ? { status: "approved" } : { status: "denied" };
 
     if (verificationCheck.status === "approved") {
       // Mark the user as verified
