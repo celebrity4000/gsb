@@ -11,7 +11,7 @@ import {
   signupSuccess,
   updateUser,
 } from "@/redux/authSlice";
-import { postData, getData } from "../../global/server";
+import { getData } from "../../global/server";
 import logo from "../assets/gsb.png";
 
 export default function Login() {
@@ -40,12 +40,6 @@ export default function Login() {
   const handleSignUp = async () => {
     dispatch(signupStart());
     try {
-      await postData(
-        "/api/auth/phone-login",
-        { phone: `+91${phoneNumber}` },
-        null,
-        null
-      );
       dispatch(signupSuccess());
 
       navigate("/verify", {

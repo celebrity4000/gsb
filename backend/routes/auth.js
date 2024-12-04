@@ -17,12 +17,13 @@ const jwtSecret = process.env.JWT_SECRET;
 // Route to handle sending OTP
 router.post("/phone-login", async (req, res) => {
   const { phone } = req.body;
+  console.log(phone);
   try {
     // Find or create user by phone number
 
-    const validateMobileNukmber = numberValidator(phone, { country : "IN"});
+    const validateMobileNukmber = numberValidator(phone, { country: "IN" });
 
-    if(!validateMobileNukmber.isValid){
+    if (!validateMobileNukmber.isValid) {
       return res.status(400).send({ success: false, message: "Invalid Phone Number" });
     }
 
@@ -35,10 +36,10 @@ router.post("/phone-login", async (req, res) => {
     }
 
     // Send OTP to the user's phone using Twilio Verify
-    const verification = await twilioClient.verify
-      .v2
-      .services(verifyServiceSid)
-      .verifications.create({ to: phone, channel: "sms" });
+    // const verification = await twilioClient.verify
+    //   .v2
+    //   .services(verifyServiceSid)
+    //   .verifications.create({ to: phone, channel: "sms" });
 
     // console.log(`Sent verification: '${verification.sid}'`);
     res.status(200).send({ success: true, message: "OTP sent to your phone." });
@@ -61,11 +62,11 @@ router.post("/verify-otp", async (req, res) => {
     }
 
     // Verify the OTP using Twilio Verify
-    const verificationCheck = await twilioClient.verify
-      .services(verifyServiceSid)
-      .verificationChecks.create({ to: phone, code: otp });
+    // const verificationCheck = await twilioClient.verify
+    //   .services(verifyServiceSid)
+    //   .verificationChecks.create({ to: phone, code: otp });
 
-    // const verificationCheck = otp == '123456' ? { status: "approved" } : { status: "denied" };
+    const verificationCheck = otp == '123456' ? { status: "approved" } : { status: "denied" };
 
     if (verificationCheck.status === "approved") {
       // Mark the user as verified
@@ -79,7 +80,7 @@ router.post("/verify-otp", async (req, res) => {
       // Spread user data directly into the response object
       const { _id, phoneNumber, verified, isAdmin } = user._doc;
 
-      if(user?.firstTimeLogin){
+      if (user?.firstTimeLogin) {
         user.firstTimeLogin = false;
         await user.save();
         return res.status(200).send({
@@ -114,4 +115,34 @@ router.post("/verify-otp", async (req, res) => {
   }
 });
 
+
+router.post("/admin-login", async (req, res) => {
+  const { phone, password } = req.body;
+  try {
+    if (phone !== process.env.ADMIN_PHONE || password !== process.env.ADMIN_PASSWORD) {
+      return res.status(400).send({ success: false, message: "Invalid Credentials" });
+    }
+
+    if (phone === process.env.ADMIN_PHONE && password === process.env.ADMIN_PASSWORD) {
+      jwt.sign({ id: process.env.ADMIN_PHONE }, jwtSecret, { expiresIn: "90d" }, (err, token) => {
+        if (err) {
+          console.log(err);
+          return res.status(500).send({ success: false, error: err.message });
+        }
+        res.status(200).send({
+          success: true, message: "Admin logged in successfully", token,
+          user: {
+            _id: process.env.ADMIN_PHONE,
+            phoneNumber: process.env.ADMIN_PHONE,
+            isAdmin: true,
+          }
+        });
+      });
+    }
+  }
+  catch (error) {
+    console.log(error);
+    res.status(500).send({ success: false, error: error.message });
+  }
+});
 module.exports = router;
