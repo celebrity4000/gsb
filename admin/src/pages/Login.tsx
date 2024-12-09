@@ -80,7 +80,7 @@ export default function Login() {
             />
           </div>
           <Button className="w-full" onClick={handleSignUp} type="submit">
-            Get OTP
+            Continue
           </Button>
         </CardContent>
       </Card>
