@@ -26,10 +26,9 @@ const UploadContentVideoModal: React.FC<UploadContentVideoModalProps> = ({
   const [error, setError] = useState<string>(""); // Error state
   const auth = useSelector((state: RootState) => state.auth);
 
-  console.log(auth.token);
-
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
+      console.log(e.target.files)
       setVideoFile(e.target.files[0]);
     }
   };
@@ -48,7 +47,7 @@ const UploadContentVideoModal: React.FC<UploadContentVideoModalProps> = ({
     formData.append("title", title);
     formData.append("description", description);
     formData.append("category", category);
-    formData.append("file", videoFile);
+    formData.append("videoFile", videoFile);
 
     try {
       //   const response = await fetch(`${BASE_URL}/api/contentVideo`, {
@@ -59,7 +58,7 @@ const UploadContentVideoModal: React.FC<UploadContentVideoModalProps> = ({
       //     body: formData,
       //   });
 
-      await axios.post(`${BASE_URL}/api/contentVideo/`, formData, {
+      await axios.post(`${BASE_URL}/api/video/upload/`, formData, {
         headers: {
           "Content-Type": "multipart/form-data",
           token: `Bearer ${auth.token}`,

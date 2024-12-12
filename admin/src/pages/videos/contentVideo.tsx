@@ -39,7 +39,7 @@ export default function ContentVideos() {
 
   const getContentVideo = async () => {
     try {
-      const response = await getData("/api/contentVideo", auth.token);
+      const response = await getData("/api/video", auth.token);
       setContentVideos(response);
       setFilteredVideos(response); // Initialize filteredVideos with all content videos
     } catch (err) {
@@ -176,13 +176,13 @@ export default function ContentVideos() {
                     <TableCell>
                       {content?.videoMedia?.resource_type === "video" ? (
                         <video
-                          src={content?.videoMedia.secure_url}
+                          src={content?.videoMedia?.secure_url}
                           style={{ width: "150px", height: "100px" }}
                           controls
                         />
                       ) : (
                         <img
-                          src={content?.videoMedia.secure_url}
+                          src="https://images.pexels.com/photos/2827392/pexels-photo-2827392.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1"
                           alt={content?.title}
                           style={{ width: "150px", height: "100px" }}
                         />

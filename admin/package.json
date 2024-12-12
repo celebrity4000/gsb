@@ -19,6 +19,7 @@
     "clsx": "^2.1.1",
     "date-fns": "^3.6.0",
     "firebase": "^10.12.2",
+    "gsb-admin": "file:",
     "input-otp": "^1.2.4",
     "lucide-react": "^0.379.0",
     "react": "^18.2.0",
