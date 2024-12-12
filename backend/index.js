@@ -11,7 +11,7 @@ const supplementRoute = require("./routes/supplement");
 const storyRoute = require("./routes/story");
 const orderRoute = require("./routes/order");
 const videoRoute = require("./routes/video");
-// const { transporter } = require("./Mail/transporter");
+const EmailService = require("./Mail/transporter");
 
 const PORT = process.env.PORT || 5001;
 
@@ -39,7 +39,9 @@ app.use("/api/story", storyRoute);
 app.use("/api/order", orderRoute);
 app.use("/api/video", videoRoute);
 
-// transporter.verify().then(console.log).catch(console.error);
+// Example usage
+const emailService = new EmailService();
+emailService.sendOTP("sonaliasrtech@gmail.com", "123456");
 
 app.listen(PORT, () => {
   console.log(`app running on port ${PORT}`);
