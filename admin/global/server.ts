@@ -59,7 +59,7 @@ export const putData = async (
   url: string,
   data: any,
   token: string | null,
-  type: string | null
+  type?: string | null
 ) => {
   let headerObj: any = {};
   if (token) {

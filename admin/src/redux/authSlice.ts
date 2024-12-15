@@ -1,6 +1,28 @@
 import { createSlice } from "@reduxjs/toolkit";
 
-const initialState = {
+// Helper function to load the state from local storage
+const loadStateFromLocalStorage = () => {
+  try {
+    const serializedState = localStorage.getItem("authState");
+    return serializedState ? JSON.parse(serializedState) : null;
+  } catch (error) {
+    console.error("Failed to load state from local storage:", error);
+    return null;
+  }
+};
+
+// Helper function to save the state to local storage
+const saveStateToLocalStorage = (state: any) => {
+  try {
+    const serializedState = JSON.stringify(state);
+    localStorage.setItem("authState", serializedState);
+  } catch (error) {
+    console.error("Failed to save state to local storage:", error);
+  }
+};
+
+// Load initial state from local storage or use default initial state
+const initialState = loadStateFromLocalStorage() || {
   isAuth: false,
   user: null,
   isFetching: false,
@@ -35,6 +57,7 @@ const authSlice = createSlice({
       state.error = false;
       state.token = action.payload.token;
       state.user = action.payload.user;
+      saveStateToLocalStorage(state); // Save to local storage
     },
     verificationFailure: (state, action) => {
       state.isFetching = false;
@@ -44,11 +67,13 @@ const authSlice = createSlice({
       state.isAuth = false;
       state.user = null;
       state.token = null;
+      saveStateToLocalStorage(state); // Save to local storage
     },
     updateUser: (state, action) => {
       state.isAuth = true;
       state.token = action.payload.token;
       state.user = action.payload.user;
+      saveStateToLocalStorage(state); // Save to local storage
     },
   },
 });

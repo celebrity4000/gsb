@@ -14,7 +14,7 @@ import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { RootState } from "@/redux/store";
 import { useEffect, useState } from "react";
-import { getData, deleteData } from "../../global/server";
+import { getData, deleteData, putData } from "../../global/server";
 import { logout } from "@/redux/authSlice";
 
 import SideNavbar from "@/components/SideNavbar";
@@ -34,6 +34,8 @@ export default function Stories() {
   const getStories = async () => {
     try {
       const response = await getData("/api/story", auth.token);
+
+      console.log(response);
       setStories(response);
     } catch (err) {
       console.log(err);
@@ -52,6 +54,20 @@ export default function Stories() {
       console.log("Error deleting story:", err);
     }
   };
+
+  const handleAddOnHome = async (storyId: string, isTrue: boolean) => {
+    if (!window.confirm("Are you sure you want to add this story to home?")) {
+      return;
+    }
+    try {
+      await putData(`/api/story/${storyId}`, {
+        showInHome: !isTrue
+      }, auth.token);
+      getStories(); // Refresh the stories list
+    } catch (err) {
+      console.log("Error adding story to home:", err);
+    }
+  }
 
   useEffect(() => {
     getStories();
@@ -96,9 +112,9 @@ export default function Stories() {
                 <CardTitle className="text-sm font-medium">
                   User Stories
                 </CardTitle>
-                <Link className="text-sm font-medium underline" to="#">
+                {/* <Link className="text-sm font-medium underline" to="#">
                   View All
-                </Link>
+                </Link> */}
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{stories?.length}</div>
@@ -113,7 +129,8 @@ export default function Stories() {
                   <TableHead>ID</TableHead>
                   <TableHead>Title</TableHead>
                   <TableHead>Description</TableHead>
-                  <TableHead>Image</TableHead>
+                  <TableHead>Before</TableHead>
+                  <TableHead>After</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -127,17 +144,47 @@ export default function Stories() {
                     </TableCell>
                     <TableCell>
                       <img
-                        src={story?.storyImg.secure_url}
+                        src={story?.beforeStoryImg}
                         alt={story?.title}
                         style={{ width: "150px", height: "100px" }}
                       />
                     </TableCell>
                     <TableCell>
-                      <div className="flex items-center gap-2">
+                      <img
+                        src={story?.afterStoryImg}
+                        alt={story?.title}
+                        style={{ width: "150px", height: "100px" }}
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex flex-col items-center gap-2">
+                        {
+                          story.showInHome ? (
+                            <Button
+                              color="green"
+                              size="sm"
+                              variant="outline"
+                              className="bg-green-600 hover:bg-green-700 hover:text-white text-white"
+                              onClick={() => handleAddOnHome(story._id, story.showInHome)}
+                            >
+                              Remove From Home
+                            </Button>
+                          ) : <Button
+                            color="blue"
+                            size="sm"
+                            variant="outline"
+                            className="bg-blue-600 hover:bg-blue-700 hover:text-white text-white"
+                            onClick={() => handleAddOnHome(story._id, story.showInHome)}
+                          >
+                            Add to Home
+                          </Button>
+                        }
+
                         <Button
                           color="red"
                           size="sm"
                           variant="outline"
+                          className="bg-red-600 hover:bg-red-700 hover:text-white text-white"
                           onClick={() => handleDelete(story._id)}
                         >
                           Delete

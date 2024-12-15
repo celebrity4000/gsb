@@ -2,10 +2,15 @@ const mongoose = require("mongoose");
 
 const StorySchema = new mongoose.Schema(
   {
-    storyImg: { type: String },
-    title: { type: String, required: true },
-    description: { type: String, required: true },
-    userId: { type: String, required: true },
+    beforeStoryImg: { type: String },
+    afterStoryImg: { type: String },
+    title: { type: String },
+    description: { type: String },
+    userId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+    },
+    showInHome: { type: Boolean, default: false },
   },
   { timestamps: true }
 );

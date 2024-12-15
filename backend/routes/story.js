@@ -5,26 +5,33 @@ const {
   verifyTokenandAdmin,
 } = require("../middlewares/verifyToken");
 const Story = require("../models/Story");
+const upload = require("../middlewares/multer.middleware");
+const {
+  uploadStory,
+  getStoryByUserId,
+  getAllStories,
+  deleteStory,
+  updateShowStoryOnHome,
+  homeStories,
+} = require("../controller/story.controller");
 
-router.post("/", verifyToken, async (req, res) => {
-  const newStory = new Story(req.body);
-  try {
-    const savedStory = await newStory.save();
-    res.status(200).json(savedStory);
-  } catch (err) {
-    res.status(500).json(err);
-  }
-});
+router.get("/homeStories", homeStories);
 
+router.post(
+  "/",
+  // verifyToken,
+  upload.fields([
+    { name: "beforeStoryImg", maxCount: 1 },
+    { name: "afterStoryImg", maxCount: 1 },
+  ]),
+  uploadStory
+);
+
+router.get("/:userId", getStoryByUserId);
 // Route to get all stories
-router.get("/", verifyToken, async (req, res) => {
-  try {
-    const stories = await Story.find();
-    res.status(200).json(stories);
-  } catch (err) {
-    res.status(500).json(err);
-  }
-});
+router.get("/", verifyToken, getAllStories);
+
+router.put("/:id", verifyToken, updateShowStoryOnHome);
 
 // Route to update a story by ID
 router.put("/:id", verifyTokenandAdmin, async (req, res) => {
@@ -43,13 +50,6 @@ router.put("/:id", verifyTokenandAdmin, async (req, res) => {
 });
 
 // Route to delete a story by ID
-router.delete("/:id", verifyTokenandAdmin, async (req, res) => {
-  try {
-    await Story.findByIdAndDelete(req.params.id);
-    res.status(200).json("Story has been deleted...");
-  } catch (err) {
-    res.status(500).json(err);
-  }
-});
+router.delete("/:id", verifyToken, deleteStory);
 
 module.exports = router;

@@ -11,6 +11,7 @@ const supplementRoute = require("./routes/supplement");
 const storyRoute = require("./routes/story");
 const orderRoute = require("./routes/order");
 const videoRoute = require("./routes/video");
+const dailyUpdateRoute = require("./routes/dailyUpdate");
 
 const PORT = process.env.PORT || 5001;
 
@@ -24,6 +25,7 @@ mongoose
     console.log(err);
   });
 
+app.use(express.urlencoded({ extended: true }));
 //allow to send json
 app.use(express.json());
 app.use(express.static("public"));
@@ -37,6 +39,7 @@ app.use("/api/supplement", supplementRoute);
 app.use("/api/story", storyRoute);
 app.use("/api/order", orderRoute);
 app.use("/api/video", videoRoute);
+app.use("/api/update", dailyUpdateRoute);
 
 app.listen(PORT, () => {
   console.log(`app running on port ${PORT}`);

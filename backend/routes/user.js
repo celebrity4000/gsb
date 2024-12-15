@@ -1,10 +1,19 @@
 const {
   verifyTokenandAuthorization,
   verifyTokenandAdmin,
+  verifyToken,
 } = require("../middlewares/verifyToken");
 const User = require("../models/User");
 
 const router = require("express").Router();
+
+router.get("/", verifyToken, async (req, res) => {
+  try {
+    const users = await User.find();
+
+    res.status(200).json(users);
+  } catch (error) {}
+});
 
 //Update
 router.put("/:id", verifyTokenandAuthorization, async (req, res) => {
