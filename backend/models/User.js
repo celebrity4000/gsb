@@ -13,8 +13,8 @@ const UserSchema = new mongoose.Schema(
     goalHeight: { type: String },
     address: { type: String },
     firstTimeLogin: { type: Boolean, default: true },
-
-    goal: { type: String },
+    dob: { type: String },
+    goal: { type: [String] },
 
     isAdmin: {
       type: Boolean,

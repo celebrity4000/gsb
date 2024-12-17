@@ -1,9 +1,12 @@
+const { default: phone } = require("phone");
+const upload = require("../middlewares/multer.middleware");
 const {
   verifyTokenandAuthorization,
   verifyTokenandAdmin,
   verifyToken,
 } = require("../middlewares/verifyToken");
 const User = require("../models/User");
+const { uploadOnCloudinary } = require("../utils/cloudinary");
 
 const router = require("express").Router();
 
@@ -16,17 +19,88 @@ router.get("/", verifyToken, async (req, res) => {
 });
 
 //Update
-router.put("/:id", verifyTokenandAuthorization, async (req, res) => {
+router.put("/:id", upload.single("file"), async (req, res) => {
+  // console.log(req.body);
   try {
-    const updatedUser = await User.findByIdAndUpdate(
-      req.params.id,
-      {
-        $set: req.body,
-      },
-      { new: true }
-    );
+    const updatedUser = await User.findById(req.params.id);
+
+    const {
+      name,
+      phoneNumber,
+      address,
+      dob,
+      age,
+      weight,
+      golWeight,
+      goalHeight,
+      goal,
+    } = req.body;
+
+    if (!updatedUser) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    let imgPath;
+    if (req.file) {
+      const uploadedImg = await uploadOnCloudinary(req.file.path);
+      if (uploadedImg) {
+        imgPath = uploadedImg.url;
+      }
+    }
+
+    const verifyPhoneNumber = await phone(req.body.phoneNumber, "IN");
+
+    if (!verifyPhoneNumber && req.body.phoneNumber) {
+      return res.status(400).json({ message: "Invalid phone number" });
+    }
+
+    if (name) {
+      updatedUser.name = name;
+    }
+
+    if (phoneNumber) {
+      updatedUser.phoneNumber = phoneNumber;
+    }
+
+    if (address) {
+      updatedUser.address = address;
+    }
+
+    if (dob) {
+      updatedUser.dob = dob;
+    }
+
+    if (age) {
+      updatedUser.age = age;
+    }
+
+    if (weight) {
+      updatedUser.weight = weight;
+    }
+
+    if (golWeight) {
+      updatedUser.golWeight = golWeight;
+    }
+
+    if (goalHeight) {
+      updatedUser.goalHeight = goalHeight;
+    }
+
+    if (goal) {
+      updatedUser.goal = goal;
+    }
+
+    if (imgPath) {
+      updatedUser.userImg = imgPath;
+    }
+
+    updatedUser.markModified("name");
+
+    await updatedUser.save();
+
     res.status(200).json(updatedUser);
   } catch (err) {
+    console.log(err);
     res.status(500).json(err);
   }
 });
@@ -41,7 +115,7 @@ router.delete("/:id", verifyTokenandAuthorization, async (req, res) => {
   }
 });
 // Get User
-router.get("/find/:id", verifyTokenandAdmin, async (req, res) => {
+router.get("/find/:id", async (req, res) => {
   try {
     const user = await User.findById(req.params.id);
     if (!user) {

@@ -42,6 +42,7 @@ export default function DiabetesQuestions() {
   const getQuestions = async () => {
     try {
       const response = await getData("/api/diabetesQuestion", auth.token);
+      console.log(response);
       setQuestions(response);
     } catch (err) {
       console.log(err);
@@ -185,7 +186,7 @@ export default function DiabetesQuestions() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {questions?.map((question: any) => (
+                {questions && questions?.map((question: any) => (
                   <TableRow key={question?._id}>
                     <TableCell className="w-[33%]">
                       {question?.questionText}

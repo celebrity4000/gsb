@@ -42,7 +42,8 @@ export default function IBSquestions() {
   const getQuestions = async () => {
     try {
       const response = await getData("/api/IBSquestions", auth.token);
-      setQuestions(response);
+      console.log(response.questions);
+      setQuestions(response.questions);
     } catch (err) {
       console.log(err);
     }
@@ -69,6 +70,7 @@ export default function IBSquestions() {
   };
 
   const handleSave = async () => {
+    console.log(questionText, options, isMultipleChoice);
     const newQuestion = {
       questionText,
       options,
@@ -185,7 +187,7 @@ export default function IBSquestions() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {questions?.map((question: any) => (
+                {questions && questions?.map((question: any) => (
                   <TableRow key={question?._id}>
                     <TableCell className="w-[33%]">
                       {question?.questionText}

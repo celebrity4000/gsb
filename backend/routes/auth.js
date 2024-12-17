@@ -44,16 +44,27 @@ router.post("/phone-login", async (req, res) => {
     // Send OTP to the user's phone number
     const sixDigitOtp = generateOtP();
 
-    const newOtp = await OTP.create({
-      email,
-      otp: sixDigitOtp,
-      willExpireAt: new Date(Date.now() + 600000),
-    });
-    if (!newOtp) {
-      return res.status(500).send({
-        success: false,
-        message: "Failed to generate OTP. Please try again later.",
+    const existingOtp = await OTP.findOne({ email });
+
+    let newOtp;
+
+    if (existingOtp) {
+      existingOtp.otp = sixDigitOtp;
+      existingOtp.willExpireAt = new Date(Date.now() + 600000);
+
+      await existingOtp.save();
+    } else {
+      newOtp = await OTP.create({
+        email,
+        otp: sixDigitOtp,
+        willExpireAt: new Date(Date.now() + 600000),
       });
+      if (!newOtp) {
+        return res.status(500).send({
+          success: false,
+          message: "Failed to generate OTP. Please try again later.",
+        });
+      }
     }
     const emailService = new EmailService();
     emailService.sendOTP(email, sixDigitOtp);

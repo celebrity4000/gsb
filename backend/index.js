@@ -12,6 +12,9 @@ const storyRoute = require("./routes/story");
 const orderRoute = require("./routes/order");
 const videoRoute = require("./routes/video");
 const dailyUpdateRoute = require("./routes/dailyUpdate");
+const ibsQuestionRoute = require("./routes/ibsQuestion");
+const diabetesQuestionsRoute = require("./routes/diabetesQuestions");
+const depressionQuestionsRoute = require("./routes/DepressionQuestion");
 
 const PORT = process.env.PORT || 5001;
 
@@ -40,6 +43,9 @@ app.use("/api/story", storyRoute);
 app.use("/api/order", orderRoute);
 app.use("/api/video", videoRoute);
 app.use("/api/update", dailyUpdateRoute);
+app.use("/api/IBSquestions", ibsQuestionRoute);
+app.use("/api/diabetesQuestion", diabetesQuestionsRoute);
+app.use("/api/depressionQuestions", depressionQuestionsRoute);
 
 app.listen(PORT, () => {
   console.log(`app running on port ${PORT}`);
