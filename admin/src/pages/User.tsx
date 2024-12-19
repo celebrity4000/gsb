@@ -290,7 +290,6 @@ export default function User() {
                   value={goal}
                   onChange={(e) => setGoal(e.target.value)}
                   className="w-full p-2 border rounded"
-                  required
                 >
                   <option value="">Select a goal</option>
                   <option value="Diabetes">Diabetes</option>

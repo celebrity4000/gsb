@@ -15,6 +15,7 @@ const UserSchema = new mongoose.Schema(
     firstTimeLogin: { type: Boolean, default: true },
     dob: { type: String },
     goal: { type: Array },
+    zone: { type: String },
 
     ibsQuestions: {
       type: Array,

@@ -36,6 +36,7 @@ router.put("/:id", upload.single("file"), async (req, res) => {
       ibsQuestions,
       diabetesQuestions,
       depressionQuestions,
+      zone,
     } = req.body;
 
     if (!updatedUser) {
@@ -106,6 +107,10 @@ router.put("/:id", upload.single("file"), async (req, res) => {
 
     if (Array.isArray(depressionQuestions) && depressionQuestions.length > 0) {
       updatedUser.depressionQuestions = depressionQuestions;
+    }
+
+    if (zone) {
+      updatedUser.zone = zone;
     }
 
     updatedUser.markModified("name");
