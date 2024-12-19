@@ -14,8 +14,19 @@ const UserSchema = new mongoose.Schema(
     address: { type: String },
     firstTimeLogin: { type: Boolean, default: true },
     dob: { type: String },
-    goal: { type: [String] },
+    goal: { type: Array },
 
+    ibsQuestions: {
+      type: Array,
+    },
+
+    diabetesQuestions: {
+      type: Array,
+    },
+
+    depressionQuestions: {
+      type: Array,
+    },
     isAdmin: {
       type: Boolean,
       default: false,

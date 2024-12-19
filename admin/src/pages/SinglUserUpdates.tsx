@@ -23,6 +23,16 @@ import { logout } from "@/redux/authSlice";
 import SideNavbar from "@/components/SideNavbar";
 import { format } from "date-fns";
 import { IoMdClose } from "react-icons/io";
+import {
+  Mail,
+  Phone,
+  MapPin,
+  User as UserIcon,
+  Target,
+  Smile,
+  HeartPulse,
+  HelpCircle,
+} from "lucide-react"
 
 interface Update {
   _id: string;
@@ -38,12 +48,31 @@ interface User {
   token: string;
 }
 
+interface UserData {
+  _id: string;
+  email: string;
+  verified: boolean;
+  name: string;
+  phoneNumber: string;
+  address: string;
+  dob: string;
+  age: number;
+  weight: string;
+  goalHeight: string;
+  goal: string[];
+  depressionQuestions: { question: string; selectedOptions: string[] }[];
+  diabetesQuestions: { question: string; selectedOptions: string[] }[];
+  ibsQuestions: { question: string; selectedOptions: string[] }[];
+  userImg: string;
+}
+
 interface RootState {
   auth: { user: User | null; token: string };
 }
 
 export default function SingleUserUpdates() {
   const [userUpdates, setUserUpdates] = useState<Update[]>([]);
+  const [userData, setUserData] = useState<UserData | null>(null);
   const [startDate, setStartDate] = useState<string>("");
   const [endDate, setEndDate] = useState<string>("");
   const [userNames, setUserNames] = useState<{ [key: string]: string }>({});
@@ -63,7 +92,10 @@ export default function SingleUserUpdates() {
   const getUserUpdates = async () => {
     try {
       const response = await getData(`/api/update/${id}`, auth.token); // Use the 'id' parameter in the API request
+      const userDetails = await getData(`/api/user/find/${id}`, auth.token);
+      console.log(userDetails);
       setUserUpdates(response);
+      setUserData(userDetails);
 
       const names: { [key: string]: string } = {};
       for (let update of response) {
@@ -127,16 +159,7 @@ export default function SingleUserUpdates() {
             <span className="sr-only">Home</span>
           </Link>
           <div className="w-full flex-1">
-            <form>
-              <div className="relative">
-                <SearchIcon className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500 dark:text-gray-400" />
-                <Input
-                  className="w-full bg-white shadow-none appearance-none pl-8 md:w-2/3 lg:w-1/3 dark:bg-gray-950"
-                  placeholder="Search..."
-                  type="search"
-                />
-              </div>
-            </form>
+            {/*  */}
           </div>
           <Button
             onClick={() => {
@@ -148,11 +171,85 @@ export default function SingleUserUpdates() {
           </Button>
         </header>
         <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-6">
+          {userData && (
+            <Card className="mb-6 flex flex-col md:flex-row items-start md:items-center gap-6 p-6 bg-white shadow-md rounded-lg">
+              <div className="flex-1">
+                <CardHeader>
+                  <CardTitle className="text-2xl font-bold text-gray-800">
+                    User Profile
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4 text-gray-700">
+                  <div className="flex items-center gap-2">
+                    <Mail className="h-5 w-5 text-gray-500" />
+                    <span><strong>Email:</strong> {userData.email}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <UserIcon className="h-5 w-5 text-gray-500" />
+                    <span><strong>Name:</strong> {userData.name}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Phone className="h-5 w-5 text-gray-500" />
+                    <span><strong>Phone:</strong> {userData.phoneNumber}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <MapPin className="h-5 w-5 text-gray-500" />
+                    <span><strong>Address:</strong> {userData.address}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Target className="h-5 w-5 text-gray-500" />
+                    <span><strong>Goals:</strong> {userData.goal.join(", ")}</span>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <HeartPulse className="h-5 w-5 text-red-500" />
+                      <strong>IBS Questions:</strong>
+                    </div>
+                    <ul className="ml-6 list-disc text-sm">
+                      {userData.ibsQuestions.map((q, idx) => (
+                        <li key={idx}>{q.question} - {q.selectedOptions.join(", ")}</li>
+                      ))}
+                    </ul>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <Smile className="h-5 w-5 text-yellow-500" />
+                      <strong>Depression Questions:</strong>
+                    </div>
+                    <ul className="ml-6 list-disc text-sm">
+                      {userData.depressionQuestions.map((q, idx) => (
+                        <li key={idx}>{q.question} - {q.selectedOptions.join(", ")}</li>
+                      ))}
+                    </ul>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <HelpCircle className="h-5 w-5 text-blue-500" />
+                      <strong>Diabetes Questions:</strong>
+                    </div>
+                    <ul className="ml-6 list-disc text-sm">
+                      {userData.diabetesQuestions.map((q, idx) => (
+                        <li key={idx}>{q.question} - {q.selectedOptions.join(", ")}</li>
+                      ))}
+                    </ul>
+                  </div>
+                </CardContent>
+              </div>
+              <div className="w-32 h-32 md:w-48 md:h-48 rounded-full overflow-hidden border border-gray-300 shadow-sm">
+                <img
+                  src={userData.userImg}
+                  alt={userData.name}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+            </Card>
+          )}
+
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-sm font-medium">
-                  User Dialy Updates
+                  User Daily Updates
                 </CardTitle>
                 <Link className="text-sm font-medium underline" to="#">
                   View All
@@ -275,22 +372,4 @@ function Package2Icon(props: React.SVGProps<SVGSVGElement>) {
   );
 }
 
-function SearchIcon(props: React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg
-      {...props}
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <circle cx="11" cy="11" r="8" />
-      <path d="m21 21-4.3-4.3" />
-    </svg>
-  );
-}
+

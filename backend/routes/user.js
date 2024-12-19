@@ -20,7 +20,6 @@ router.get("/", verifyToken, async (req, res) => {
 
 //Update
 router.put("/:id", upload.single("file"), async (req, res) => {
-  // console.log(req.body);
   try {
     const updatedUser = await User.findById(req.params.id);
 
@@ -34,6 +33,9 @@ router.put("/:id", upload.single("file"), async (req, res) => {
       golWeight,
       goalHeight,
       goal,
+      ibsQuestions,
+      diabetesQuestions,
+      depressionQuestions,
     } = req.body;
 
     if (!updatedUser) {
@@ -92,6 +94,18 @@ router.put("/:id", upload.single("file"), async (req, res) => {
 
     if (imgPath) {
       updatedUser.userImg = imgPath;
+    }
+
+    if (Array.isArray(ibsQuestions) && ibsQuestions.length > 0) {
+      updatedUser.ibsQuestions = ibsQuestions;
+    }
+
+    if (Array.isArray(diabetesQuestions) && diabetesQuestions.length > 0) {
+      updatedUser.diabetesQuestions = diabetesQuestions;
+    }
+
+    if (Array.isArray(depressionQuestions) && depressionQuestions.length > 0) {
+      updatedUser.depressionQuestions = depressionQuestions;
     }
 
     updatedUser.markModified("name");
